@@ -254,21 +254,39 @@ if ($loggedIn) {
     die("Bağlantı hatası: " . $baglan->connect_error);
   }
 
-  // "t_istaatistik" tablosundan en çok görüntülenen 5 ilanı çekiyoruz.
-  $sql = "SELECT * FROM t_istatistik ORDER BY istatistikGoruntulenmeSayisi DESC LIMIT 5";
+  // En çok görüntülenen 5 ilanı çekiyoruz
+  $sql = "SELECT 
+            i.istatistikGoruntulenmeSayisi,
+            il.ilanID,
+            id.ilanDAciklama,
+            id.ilanDFiyat,
+            (SELECT r.resimUrl FROM t_resimler r WHERE r.resimIlanID = il.ilanID LIMIT 1) AS resimYolu
+          FROM t_istatistik i
+          JOIN t_ilanlar il ON i.istatistikIlanID = il.ilanID
+          JOIN t_ilandetay id ON il.ilanID = id.ilanDilanID
+          ORDER BY i.istatistikGoruntulenmeSayisi DESC 
+          LIMIT 5";
+  
   $result = $baglan->query($sql);
 
   if ($result->num_rows > 0) {
-    echo '<div class="featured-listings">';
+    echo '<div class="listings">';
+    echo '<div class="listing-grid">';
     while ($row = $result->fetch_assoc()) {
-      echo '<div class="listing">';
-      // Örneğin ilan başlığını ve görüntülenme sayısını gösteriyoruz.
-      echo '<p>Görüntülenme Sayısı: ' . $row['istatistikGoruntulenmeSayisi'] . '</p>';
+      echo '<a href="ilanDetay.php?id=' . htmlspecialchars($row['ilanID']) . '" style="text-decoration: none; color: inherit;">';
+      echo '<div class="listing-card">';
+      echo '<img src="' . htmlspecialchars($row['resimYolu']) . '"';
+      echo '<div class="card-content">';
+      echo '<p>' . htmlspecialchars($row['ilanDAciklama']) . '</p>';
+      echo '<p><strong>Fiyat:</strong> ' . htmlspecialchars($row['ilanDFiyat']) . ' TL</p>';
       echo '</div>';
+      echo '</div>';
+      echo '</a>';
     }
     echo '</div>';
+    echo '</div>';
   } else {
-    echo "Öne çıkan ilan bulunamadı.";
+    echo '<div class="listings"><p>Öne çıkan ilan bulunamadı.</p></div>';
   }
   $baglan->close();
   ?>
