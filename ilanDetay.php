@@ -41,7 +41,7 @@ if (!$ilan) {
     exit;
 }
 
-$resimler = explode(',', $ilan->resimler);
+$resimler = isset($ilan->resimler) && $ilan->resimler !== null ? explode(',', $ilan->resimler) : [];
 ?>
 
 <!doctype html>

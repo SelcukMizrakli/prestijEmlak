@@ -7,59 +7,128 @@ if (!isset($_SESSION['giris'])) {
 
 include("ayar.php");
 
+// CSRF Token Generation
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Form gönderildi mi kontrol et
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Adres bilgilerini al
-    $adresBaslik = $_POST['adresBaslik'] ?? null;
-    $adresMahalle = $_POST['adresMahalle'] ?? null;
-    $adresIlce = $_POST['adresIlce'] ?? null;
-    $adresSehir = $_POST['adresSehir'] ?? null;
-    $adresUlke = $_POST['adresUlke'] ?? null;
-    $adresPostaKodu = $_POST['adresPostaKodu'] ?? null;
-
-    // İlan bilgilerini al
-    $ilanUyeID = $_POST['ilanUyeID'] ?? null; // Kullanıcı ID'si
-    $ilanDurum = $_POST['ilanDurum'] ?? null;
-    $ilanFiyat = $_POST['ilanFiyat'] ?? null;
-    $ilanMetrekareBrut = $_POST['ilanMetrekareBrut'] ?? null;
-    $ilanMetrekareNet = $_POST['ilanMetrekareNet'] ?? null;
-    $ilanOdaSayisi = $_POST['ilanOdaSayisi'] ?? null;
-    $ilanBinaYasi = $_POST['ilanBinaYasi'] ?? null;
-    $ilanSiteIcerisindeMi = $_POST['ilanSiteIcerisindeMi'] ?? null;
-    $ilanMulkTuru = $_POST['ilanMulkTuru'] ?? null;
-    $ilanKonum = $_POST['ilanKonum'] ?? null;
-    $ilanIsitmaTipi = $_POST['ilanIsitmaTipi'] ?? null;
-    $ilanBulunduguKat = $_POST['ilanBulunduguKat'] ?? null;
-    $ilanBinaKatSayisi = $_POST['ilanBinaKatSayisi'] ?? null;
-
-    // Gerekli alanların dolu olup olmadığını kontrol et
-    if (is_null($adresBaslik) || is_null($ilanUyeID) || is_null($ilanDurum) || is_null($ilanFiyat) || 
-        is_null($ilanMetrekareBrut) || is_null($ilanMetrekareNet) || is_null($ilanOdaSayisi) || 
-        is_null($ilanBinaYasi) || is_null($ilanSiteIcerisindeMi) || is_null($ilanMulkTuru) || 
-        is_null($ilanKonum) || is_null($ilanIsitmaTipi) || is_null($ilanBulunduguKat) || 
-        is_null($ilanBinaKatSayisi)) {
-        echo "Lütfen tüm alanları doldurun.";
-        exit();
+    // CSRF Token Validation
+    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        die("CSRF token validation failed");
     }
 
-    // Adres bilgilerini veritabanına kaydet
-    $adresSorgu = $baglan->prepare("INSERT INTO t_adresler (adresBaslik, adresMahalle, adresIlce, adresSehir, adresUlke, adresPostaKodu, adresEklenmeTarihi) VALUES (?, ?, ?, ?, ?, ?, NOW())");
-    $adresSorgu->bind_param("sssssi", $adresBaslik, $adresMahalle, $adresIlce, $adresSehir, $adresUlke, $adresPostaKodu);
+    // Adres bilgilerini al ve sanitize et
+    $adresBaslik = htmlspecialchars($_POST['adresBaslik'], ENT_QUOTES, 'UTF-8');
+    $adresMahalle = htmlspecialchars($_POST['adresMahalle'], ENT_QUOTES, 'UTF-8');
+    $adresIlce = htmlspecialchars($_POST['adresIlce'], ENT_QUOTES, 'UTF-8');
+    $adresSehir = htmlspecialchars($_POST['adresSehir'], ENT_QUOTES, 'UTF-8');
+    $adresUlke = htmlspecialchars($_POST['adresUlke'], ENT_QUOTES, 'UTF-8');
+    $adresPostaKodu = htmlspecialchars($_POST['adresPostaKodu'], ENT_QUOTES, 'UTF-8');
+
+    // Mülk tipi bilgisi
+    $mulkTipiBaslik = htmlspecialchars($_POST['ilanMulkTuru'], ENT_QUOTES, 'UTF-8');
+
+    // İlan türü bilgisi
+    $ilanTurAdi = htmlspecialchars($_POST['ilanTur'], ENT_QUOTES, 'UTF-8');
+
+    // İlan bilgilerini al
+    $ilanDurum = $_POST['ilanDurum'];
+    $ilanUyeID = $_SESSION['uyeID'];
+
+    // İlan detay bilgilerini al
+    $ilanDAciklama = htmlspecialchars($_POST['ilanDAciklama'], ENT_QUOTES, 'UTF-8');
+    $ilanDBinaKatSayisi = intval($_POST['ilanBinaKatSayisi']);
+    $ilanDBinaYasi = intval($_POST['ilanBinaYasi']);
+    $ilanDBulunduguKatSayisi = intval($_POST['ilanBulunduguKat']);
+    $ilanDFiyat = floatval($_POST['ilanFiyat']);
+    $ilanDIsıtmaTipi = htmlspecialchars($_POST['ilanIsitmaTipi'], ENT_QUOTES, 'UTF-8');
+    $ilanDKonumBilgisi = htmlspecialchars($_POST['ilanKonum'], ENT_QUOTES, 'UTF-8');
+    $ilanDmetreKareBrut = floatval($_POST['ilanMetrekareBrut']);
+    $ilanDmetreKareNet = floatval($_POST['ilanMetrekareNet']);
+    $ilanDOdaSayisi = htmlspecialchars($_POST['ilanOdaSayisi'], ENT_QUOTES, 'UTF-8');
+    $ilanDSiteIcerisindeMi = intval($_POST['ilanSiteIcerisindeMi']);
+
+    // Adres bilgilerini t_adresler tablosuna kaydet
+    $adresSorgu = $baglan->prepare("INSERT INTO t_adresler (adresBaslik, adresMahalle, adresIlce, adresSehir, adresUlke, adresPostaKodu, adresEklenmeTarihi, adresGuncellenmeTarihi, adresSilinmeTarihi) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW(), NULL)");
+    $adresSorgu->bind_param("ssssss", $adresBaslik, $adresMahalle, $adresIlce, $adresSehir, $adresUlke, $adresPostaKodu);
     $adresSorgu->execute();
-    $adresID = $baglan->insert_id; // Eklenen adres ID'sini al
+    $adresID = $baglan->insert_id;
 
-    // İlan bilgilerini veritabanına kaydet
-    $ilanSorgu = $baglan->prepare("INSERT INTO t_ilanlar (ilanUyeID, ilanAdresID, ilanDurum, ilanYayinTarihi, ilanGuncellenmeTarihi) VALUES (?, ?, ?, NOW(), NOW())");
-    $ilanSorgu->bind_param("ii", $ilanUyeID, $adresID, $ilanDurum);
+    // Mülk tipi bilgilerini t_mulktipi tablosuna kaydet
+    $mulkTipiSorgu = $baglan->prepare("INSERT INTO t_mulktipi (mulkTipiBaslik) VALUES (?)");
+    $mulkTipiSorgu->bind_param("s", $mulkTipiBaslik);
+    $mulkTipiSorgu->execute();
+    $mulkTipiID = $baglan->insert_id;
+
+    // İlan türü bilgilerini t_ilantur tablosuna kaydet
+    $ilanTurSorgu = $baglan->prepare("INSERT INTO t_ilantur (ilanTurAdi) VALUES (?)");
+    $ilanTurSorgu->bind_param("s", $ilanTurAdi);
+    $ilanTurSorgu->execute();
+    $ilanTurID = $baglan->insert_id;
+
+    // İlan bilgilerini t_ilanlar tablosuna kaydet
+    $ilanSorgu = $baglan->prepare("INSERT INTO t_ilanlar (ilanAdresID, ilanDurum, ilanYayinTarihi, ilanGuncellenmeTarihi, ilanSilinmeTarihi, ilanUyeID) VALUES (?, ?, NOW(), NOW(), NULL, ?)");
+    $ilanSorgu->bind_param("iii", $adresID, $ilanDurum, $ilanUyeID);
     $ilanSorgu->execute();
-    $ilanID = $baglan->insert_id; // Eklenen ilan ID'sini al
+    $ilanID = $baglan->insert_id;
 
-    // İlan detaylarını veritabanına kaydet
-    $sorgu = $baglan->prepare("INSERT INTO t_ilandetay (ilanDFiyat, ilanDMetrekareBrut, ilanDMetrekareNet, ilanDOdaSayisi, ilanDBinaYasi, ilanDSiteIcerisindeMi, ilanDMulkTuru, ilanDKonumBilgisi, ilanDIsıtmaTipi, ilanDBulunduguKatSayisi, ilanDBinaKatSayisi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $sorgu->bind_param("iiiiissssii", $ilanFiyat, $ilanMetrekareBrut, $ilanMetrekareNet, $ilanOdaSayisi, $ilanBinaYasi, $ilanSiteIcerisindeMi, $ilanMulkTuru, $ilanKonum, $ilanIsitmaTipi, $ilanBulunduguKat, $ilanBinaKatSayisi);
+    // İlan detaylarını t_ilandetay tablosuna kaydet
+    $detaySorgu = $baglan->prepare("INSERT INTO t_ilandetay (ilanDilanID, ilanDFiyat, ilanDmetreKareBrut, ilanDmetreKareNet, ilanDOdaSayisi, ilanDBinaYasi, ilanDSiteIcerisindeMi, ilanDMulkTipiID, ilanDMulkTuru, ilanDKonumBilgisi, ilanDIsıtmaTipi, ilanDBulunduguKatSayisi, ilanDBinaKatSayisi, ilanDIlanTurID, ilanDAciklama) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $detaySorgu->bind_param("idddiisisssiiis", $ilanID, $ilanDFiyat, $ilanDmetreKareBrut, $ilanDmetreKareNet, $ilanDOdaSayisi, $ilanDBinaYasi, $ilanDSiteIcerisindeMi, $mulkTipiID, $mulkTipiBaslik, $ilanDKonumBilgisi, $ilanDIsıtmaTipi, $ilanDBulunduguKatSayisi, $ilanDBinaKatSayisi, $ilanTurID, $ilanDAciklama);
     $detaySorgu->execute();
 
-    echo "İlan başarıyla eklendi.";
+    // Resimleri yükle ve t_resimler tablosuna kaydet
+    if (isset($_FILES['ilanResimler']) && count($_FILES['ilanResimler']['tmp_name']) > 0) {
+        $uploads_dir = "uploads";
+        if (!is_dir($uploads_dir)) {
+            mkdir($uploads_dir, 0777, true); // Klasör yoksa oluştur
+        }
+
+        $resimler = array();
+        foreach ($_FILES['ilanResimler']['tmp_name'] as $key => $tmp_name) {
+            if (is_uploaded_file($tmp_name)) {
+                $name = basename($_FILES['ilanResimler']['name'][$key]);
+                $upload_path = "$uploads_dir/$name";
+
+                if (move_uploaded_file($tmp_name, $upload_path)) {
+                    $resimYolu = "../$upload_path";
+
+                    // Resmin daha önce eklenip eklenmediğini kontrol et
+                    $sorgu = $baglan->prepare("SELECT resimID FROM t_resimler WHERE resimUrl = ?");
+                    $sorgu->bind_param("s", $resimYolu);
+                    $sorgu->execute();
+                    $sorgu->store_result();
+
+                    if ($sorgu->num_rows > 0) {
+                        $sorgu->bind_result($resimID);
+                        $sorgu->fetch();
+                    } else {
+                        // Resim ekleniyor
+                        $resimDurum = 1; // Varsayılan olarak aktif
+                        $resimBaslik = $ilanDAciklama; // Resim başlığı olarak ilan açıklaması kullanılıyor
+                        $resimSorgu = $baglan->prepare("INSERT INTO t_resimler (resimBaslik, resimDurum, resimEklenmeTarihi, resimGuncellenmeTarihi, resimIlanID, resimSilinmeTarihi, resimUrl) VALUES (?, ?, NOW(), NOW(), ?, NULL, ?)");
+                        $resimSorgu->bind_param("siis", $resimBaslik, $resimDurum, $ilanID, $resimYolu);
+                        $resimSorgu->execute();
+                        $resimID = $baglan->insert_id;
+                    }
+
+                    $resimler[] = $resimID;
+                }
+            }
+        }
+
+        if (!empty($resimler)) {
+            // İlk resmi kullanabilir veya diğer işlemler için resim ID'lerini kullanabilirsiniz
+            echo "Resimler başarıyla yüklendi ve kaydedildi.";
+        } else {
+            echo "Resim yüklenirken bir hata oluştu.";
+        }
+    }
+
+    // Başarılı mesajı ve yönlendirme
+    $_SESSION['basarili'] = "İlan başarıyla eklendi.";
     header("Location: ilanDetay.php?id=" . $ilanID);
     exit();
 }
@@ -76,7 +145,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="container mt-5">
         <h2>İlan Ekle</h2>
-        <form action="" method="POST" enctype="multipart/form-data">
+            <form action="" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
             <h4>Adres Bilgileri</h4>
             <div class="mb-3">
                 <label for="adresBaslik" class="form-label">Adres Başlık</label>
@@ -104,10 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <h4>İlan Bilgileri</h4>
-            <div class="mb-3">
-                <label for="ilanUyeID" class="form -label">Kullanıcı ID</label>
-                <input type="number" class="form-control" id="ilanUyeID" name="ilanUyeID" required>
-            </div>
+            <input type="hidden" name="ilanUyeID" value="<?php echo $_SESSION['giris']['uyeID'] ?? ''; ?>">
             <div class="mb-3">
                 <label for="ilanDurum" class="form-label">İlan Durumu</label>
                 <select class="form-select" id="ilanDurum" name="ilanDurum" required>
@@ -174,6 +241,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="mb-3">
                 <label for="ilanBinaKatSayisi" class="form-label">Bina Kat Sayısı</label>
                 <input type="number" class="form-control" id="ilanBinaKatSayisi" name="ilanBinaKatSayisi" required>
+            </div>
+            <div class="mb-3">
+                <label for="ilanTur" class="form-label">İlan Türü</label>
+                <input type="text" class="form-control" id="ilanTur" name="ilanTur" required>
+            </div>
+            <div class="mb-3">
+                <label for="ilanDAciklama" class="form-label">Açıklama</label>
+                <textarea class="form-control" id="ilanDAciklama" name="ilanDAciklama" required></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="ilanResimler" class="form-label">İlan Resimleri (En fazla 25 adet)</label>
+                <input type="file" class="form-control" id="ilanResimler" name="ilanResimler[]" multiple accept="image/*">
+                <small class="form-text text-muted">Birden fazla resim seçmek için Ctrl veya Shift tuşunu kullanabilirsiniz.</small>
             </div>
             <button type="submit" class="btn btn-primary">İlan Ekle</button>
         </form>
