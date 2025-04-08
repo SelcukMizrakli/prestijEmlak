@@ -10,4 +10,4 @@
 *   formda kullanıcıya ad soyad, telefon numarası, e-posta adresi, ilan türü, ilan başlığı, ilan açıklaması, ilan fiyatı, ilan fotoğrafı,
         ilan adresi, ilan tarihleri, ilan statüsü, ilan görünürlüğü, ilan kategorisi, ilan etiketi, ilan linki
 
-// ilan ekleme sayfasında kaldık. Girilen bilgileri veri tabanına kaydedeceğiz.
+// ilan ekleme sayfasında kaldık. Girilen bilgileri veri tabanına kaydedeceğiz. (t_ilanlar, t_ilandetay, t_adresler tabloları kullanılacak)

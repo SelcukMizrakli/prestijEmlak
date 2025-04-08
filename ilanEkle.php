@@ -7,54 +7,61 @@ if (!isset($_SESSION['giris'])) {
 
 include("ayar.php");
 
-// Formdan gelen bilgileri al
-$ilanFiyat = $_POST['ilanFiyat'];
-$ilanMetrekareBrut = $_POST['ilanMetrekareBrut'];
-$ilanMetrekareNet = $_POST['ilanMetrekareNet'];
-$ilanOdaSayisi = $_POST['ilanOdaSayisi'];
-$ilanBinaYasi = $_POST['ilanBinaYasi'];
-$ilanSiteIcerisindeMi = $_POST['ilanSiteIcerisindeMi'];
-$ilanMulkTuru = $_POST['ilanMulkTuru'];
-$ilanKonum = $_POST['ilanKonum'];
-$ilanIsitmaTipi = $_POST['ilanIsitmaTipi'];
-$ilanBulunduguKat = $_POST['ilanBulunduguKat'];
-$ilanBinaKatSayisi = $_POST['ilanBinaKatSayisi'];
+// Form gönderildi mi kontrol et
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Adres bilgilerini al
+    $adresBaslik = $_POST['adresBaslik'] ?? null;
+    $adresMahalle = $_POST['adresMahalle'] ?? null;
+    $adresIlce = $_POST['adresIlce'] ?? null;
+    $adresSehir = $_POST['adresSehir'] ?? null;
+    $adresUlke = $_POST['adresUlke'] ?? null;
+    $adresPostaKodu = $_POST['adresPostaKodu'] ?? null;
 
-// İlan bilgilerini veritabanına kaydet
-$sorgu = $baglan->prepare("INSERT INTO t_ilandetay (ilanFiyat, ilanMetrekareBrut, ilanMetrekareNet, ilanOdaSayisi, ilanBinaYasi, ilanSiteIcerisindeMi, ilanMulkTuru, ilanKonum, ilanIsitmaTipi, ilanBulunduguKat, ilanBinaKatSayisi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-$sorgu->bind_param("iiiiissssii", $ilanFiyat, $ilanMetrekareBrut, $ilanMetrekareNet, $ilanOdaSayisi, $ilanBinaYasi, $ilanSiteIcerisindeMi, $ilanMulkTuru, $ilanKonum, $ilanIsitmaTipi, $ilanBulunduguKat, $ilanBinaKatSayisi);
+    // İlan bilgilerini al
+    $ilanUyeID = $_POST['ilanUyeID'] ?? null; // Kullanıcı ID'si
+    $ilanDurum = $_POST['ilanDurum'] ?? null;
+    $ilanFiyat = $_POST['ilanFiyat'] ?? null;
+    $ilanMetrekareBrut = $_POST['ilanMetrekareBrut'] ?? null;
+    $ilanMetrekareNet = $_POST['ilanMetrekareNet'] ?? null;
+    $ilanOdaSayisi = $_POST['ilanOdaSayisi'] ?? null;
+    $ilanBinaYasi = $_POST['ilanBinaYasi'] ?? null;
+    $ilanSiteIcerisindeMi = $_POST['ilanSiteIcerisindeMi'] ?? null;
+    $ilanMulkTuru = $_POST['ilanMulkTuru'] ?? null;
+    $ilanKonum = $_POST['ilanKonum'] ?? null;
+    $ilanIsitmaTipi = $_POST['ilanIsitmaTipi'] ?? null;
+    $ilanBulunduguKat = $_POST['ilanBulunduguKat'] ?? null;
+    $ilanBinaKatSayisi = $_POST['ilanBinaKatSayisi'] ?? null;
 
-if ($sorgu->execute()) {
+    // Gerekli alanların dolu olup olmadığını kontrol et
+    if (is_null($adresBaslik) || is_null($ilanUyeID) || is_null($ilanDurum) || is_null($ilanFiyat) || 
+        is_null($ilanMetrekareBrut) || is_null($ilanMetrekareNet) || is_null($ilanOdaSayisi) || 
+        is_null($ilanBinaYasi) || is_null($ilanSiteIcerisindeMi) || is_null($ilanMulkTuru) || 
+        is_null($ilanKonum) || is_null($ilanIsitmaTipi) || is_null($ilanBulunduguKat) || 
+        is_null($ilanBinaKatSayisi)) {
+        echo "Lütfen tüm alanları doldurun.";
+        exit();
+    }
+
+    // Adres bilgilerini veritabanına kaydet
+    $adresSorgu = $baglan->prepare("INSERT INTO t_adresler (adresBaslik, adresMahalle, adresIlce, adresSehir, adresUlke, adresPostaKodu, adresEklenmeTarihi) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+    $adresSorgu->bind_param("sssssi", $adresBaslik, $adresMahalle, $adresIlce, $adresSehir, $adresUlke, $adresPostaKodu);
+    $adresSorgu->execute();
+    $adresID = $baglan->insert_id; // Eklenen adres ID'sini al
+
+    // İlan bilgilerini veritabanına kaydet
+    $ilanSorgu = $baglan->prepare("INSERT INTO t_ilanlar (ilanUyeID, ilanAdresID, ilanDurum, ilanYayinTarihi, ilanGuncellenmeTarihi) VALUES (?, ?, ?, NOW(), NOW())");
+    $ilanSorgu->bind_param("ii", $ilanUyeID, $adresID, $ilanDurum);
+    $ilanSorgu->execute();
     $ilanID = $baglan->insert_id; // Eklenen ilan ID'sini al
 
-    // Resimleri yükle ve veritabanına kaydet
-    if (isset($_FILES['ilanResimler']) && count($_FILES['ilanResimler']['name']) > 0) {
-        $resimSayisi = count($_FILES['ilanResimler']['name']);
-        if ($resimSayisi > 25) {
-            echo "En fazla 25 resim yükleyebilirsiniz.";
-            exit();
-        }
-
-        for ($i = 0; $i < $resimSayisi; $i++) {
-            $resimAdi = $_FILES['ilanResimler']['name'][$i];
-            $resimTmp = $_FILES['ilanResimler']['tmp_name'][$i];
-            $hedefKlasor = "uploads/";
-            $hedefDosya = $hedefKlasor . uniqid() . "_" . basename($resimAdi);
-
-            if (move_uploaded_file($resimTmp, $hedefDosya)) {
-                // Resim yolunu veritabanına kaydet
-                $resimSorgu = $baglan->prepare("INSERT INTO t_resimler (resimIlanID, resimUrl) VALUES (?, ?)");
-                $resimSorgu->bind_param("is", $ilanID, $hedefDosya);
-                $resimSorgu->execute();
-            }
-        }
-    }
+    // İlan detaylarını veritabanına kaydet
+    $sorgu = $baglan->prepare("INSERT INTO t_ilandetay (ilanDFiyat, ilanDMetrekareBrut, ilanDMetrekareNet, ilanDOdaSayisi, ilanDBinaYasi, ilanDSiteIcerisindeMi, ilanDMulkTuru, ilanDKonumBilgisi, ilanDIsıtmaTipi, ilanDBulunduguKatSayisi, ilanDBinaKatSayisi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $sorgu->bind_param("iiiiissssii", $ilanFiyat, $ilanMetrekareBrut, $ilanMetrekareNet, $ilanOdaSayisi, $ilanBinaYasi, $ilanSiteIcerisindeMi, $ilanMulkTuru, $ilanKonum, $ilanIsitmaTipi, $ilanBulunduguKat, $ilanBinaKatSayisi);
+    $detaySorgu->execute();
 
     echo "İlan başarıyla eklendi.";
     header("Location: ilanDetay.php?id=" . $ilanID);
     exit();
-} else {
-    echo "İlan eklenirken bir hata oluştu.";
 }
 ?>
 
@@ -70,21 +77,72 @@ if ($sorgu->execute()) {
     <div class="container mt-5">
         <h2>İlan Ekle</h2>
         <form action="" method="POST" enctype="multipart/form-data">
+            <h4>Adres Bilgileri</h4>
             <div class="mb-3">
-                <label for="ilanFiyat" class="form-label">Fiyat (TL)</label>
+                <label for="adresBaslik" class="form-label">Adres Başlık</label>
+                <input type="text" class="form-control" id="adresBaslik" name="adresBaslik" required>
+            </div>
+            <div class="mb-3">
+                <label for="adresMahalle" class="form-label">Mahalle</label>
+                <input type="text" class="form-control" id="adresMahalle" name="adresMahalle" required>
+            </div>
+            <div class="mb-3">
+                <label for="adresIlce" class="form-label">İlçe</label>
+                <input type="text" class="form-control" id="adresIlce" name="adresIlce" required>
+            </div>
+            <div class="mb-3">
+                <label for="adresSehir" class="form-label">Şehir</label>
+                <input type="text" class="form-control" id="adresSehir" name="adresSehir" required>
+            </div>
+            <div class="mb-3">
+                <label for="adresUlke" class="form-label">Ülke</label>
+                <input type="text" class="form-control" id="adresUlke" name="adresUlke" required>
+            </div>
+            <div class="mb-3">
+                <label for="adresPostaKodu" class="form-label">Posta Kodu</label>
+                <input type="text" class="form-control" id="adresPostaKodu" name="adresPostaKodu" required>
+            </div>
+
+            <h4>İlan Bilgileri</h4>
+            <div class="mb-3">
+                <label for="ilanUyeID" class="form -label">Kullanıcı ID</label>
+                <input type="number" class="form-control" id="ilanUyeID" name="ilanUyeID" required>
+            </div>
+            <div class="mb-3">
+                <label for="ilanDurum" class="form-label">İlan Durumu</label>
+                <select class="form-select" id="ilanDurum" name="ilanDurum" required>
+                    <option value="1">Aktif</option>
+                    <option value="0">Pasif</option>
+                    <option value="2">Satıldı</option>
+                    <option value="3">Kiralandı</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="ilanFiyat" class="form-label">Fiyat</label>
                 <input type="number" class="form-control" id="ilanFiyat" name="ilanFiyat" required>
             </div>
             <div class="mb-3">
-                <label for="ilanMetrekareBrut" class="form-label">Metrekare (Brüt)</label>
+                <label for="ilanMetrekareBrut" class="form-label">Brüt Metrekare</label>
                 <input type="number" class="form-control" id="ilanMetrekareBrut" name="ilanMetrekareBrut" required>
             </div>
             <div class="mb-3">
-                <label for="ilanMetrekareNet" class="form-label">Metrekare (Net)</label>
+                <label for="ilanMetrekareNet" class="form-label">Net Metrekare</label>
                 <input type="number" class="form-control" id="ilanMetrekareNet" name="ilanMetrekareNet" required>
             </div>
             <div class="mb-3">
                 <label for="ilanOdaSayisi" class="form-label">Oda Sayısı</label>
-                <input type="text" class="form-control" id="ilanOdaSayisi" name="ilanOdaSayisi" required>
+                <select class="form-select" id="ilanOdaSayisi" name="ilanOdaSayisi" required>
+                    <option value="">Seçiniz</option>
+                    <option value="1+1">1+1</option>
+                    <option value="2+1">2+1</option>
+                    <option value="3+1">3+1</option>
+                    <option value="4+1">4+1</option>
+                    <option value="5+1">5+1</option>
+                    <option value="1+0">1+0</option>
+                    <option value="2+0">2+0</option>
+                    <option value="3+0">3+0</option>
+                    <!-- Diğer seçenekleri ekleyebilirsiniz -->
+                </select>
             </div>
             <div class="mb-3">
                 <label for="ilanBinaYasi" class="form-label">Bina Yaşı</label>
@@ -92,7 +150,7 @@ if ($sorgu->execute()) {
             </div>
             <div class="mb-3">
                 <label for="ilanSiteIcerisindeMi" class="form-label">Site İçerisinde Mi?</label>
-                <select class="form-control" id="ilanSiteIcerisindeMi" name="ilanSiteIcerisindeMi" required>
+                <select class="form-select" id="ilanSiteIcerisindeMi" name="ilanSiteIcerisindeMi" required>
                     <option value="1">Evet</option>
                     <option value="0">Hayır</option>
                 </select>
@@ -117,13 +175,9 @@ if ($sorgu->execute()) {
                 <label for="ilanBinaKatSayisi" class="form-label">Bina Kat Sayısı</label>
                 <input type="number" class="form-control" id="ilanBinaKatSayisi" name="ilanBinaKatSayisi" required>
             </div>
-            <div class="mb-3">
-                <label for="ilanResimler" class="form-label">İlan Resimleri (En fazla 25 adet)</label>
-                <input type="file" class="form-control" id="ilanResimler" name="ilanResimler[]" multiple accept="image/*" required>
-                <small class="form-text text-muted">Birden fazla resim seçmek için Ctrl veya Shift tuşunu kullanabilirsiniz.</small>
-            </div>
-            <button type="submit" class="btn btn-primary">İlanı Ekle</button>
+            <button type="submit" class="btn btn-primary">İlan Ekle</button>
         </form>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
