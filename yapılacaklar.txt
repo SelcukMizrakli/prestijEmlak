@@ -18,5 +18,4 @@ Yapılacaklar: İlan ekleme ve ilan detay sayfalarının görüntüleri düzelti
 *** navbar'daki profil dropdown'una mesajlarım da eklenebilir
 *** ilan verenin profil sayfasına ilan vermiş olduğu ilanların listelenmesi yapılabilir
 
-
 // ilan ekleme sayfasında kaldık. Girilen bilgileri veri tabanına kaydedeceğiz. (t_ilanlar, t_ilandetay, t_adresler, t_ilantur tabloları kullanılacak)
