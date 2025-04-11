@@ -3,21 +3,286 @@ session_start();
 ?>
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>İlanlar - Prestij Emlak</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="style.css" rel="stylesheet">
+  <style>
+    /* Genel Stiller */
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+
+    header {
+      background-color: #004080;
+      color: #fff;
+      padding: 15px 20px;
+    }
+
+    header .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 60px;
+      /* Fixed height for consistent alignment */
+    }
+
+    header .logo {
+      font-size: 1.5em;
+      font-weight: bold;
+      line-height: 60px;
+      /* Match container height */
+      padding: 0 20px;
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 15px;
+      margin: 0;
+      padding: 0;
+      height: 60px;
+      /* Match container height */
+      align-items: center;
+    }
+
+    nav ul li a {
+      display: inline-block;
+      line-height: 60px;
+      /* Match container height */
+      padding: 0 10px;
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+      transition: color 0.3s ease;
+    }
+
+    nav ul li a:hover {
+      color: #ff6600;
+    }
+
+    .dropdown-toggle {
+      line-height: 60px !important;
+      /* Match container height */
+      padding: 0 10px !important;
+    }
+
+    .search-section {
+      background: url('https://via.placeholder.com/1200x400') no-repeat center/cover;
+      padding: 80px 20px;
+      text-align: center;
+      color: #fff;
+      position: relative;
+    }
+
+    .search-section::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .search-section .search-container {
+      position: relative;
+      z-index: 1;
+      max-width: 800px;
+      margin: auto;
+    }
+
+    .search-section h1 {
+      font-size: 2.8em;
+      margin-bottom: 20px;
+    }
+
+    .search-form {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .search-form input,
+    .search-form select {
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      min-width: 150px;
+    }
+
+    .search-form button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      background-color: #ff6600;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .search-form button:hover {
+      background-color: #e65c00;
+    }
+
+    .listings {
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .listing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .listing-card {
+      background-color: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .listing-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .listing-card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+
+    .listing-card .card-content {
+      padding: 15px;
+    }
+
+    .listing-card .card-content h3 {
+      margin-bottom: 10px;
+      font-size: 1.2em;
+      color: #004080;
+    }
+
+    .listing-card .card-content p {
+      font-size: 0.9em;
+      color: #555;
+    }
+
+    footer {
+      background-color: #333;
+      color: #ccc;
+      padding: 20px;
+      text-align: center;
+    }
+
+    footer a {
+      color: #ff6600;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    footer a:hover {
+      color: #e65c00;
+    }
+
+    @media (max-width: 768px) {
+      header .container {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      nav ul {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .search-section h1 {
+        font-size: 2em;
+      }
+    }
+  </style>
 </head>
+
 <body>
   <?php include("header.php"); ?>
 
+  <!-- Arama Bölümü -->
+  <section class="search-section">
+    <div class="search-container">
+      <h1>Tüm İlanlar</h1>
+      <form class="search-form">
+        <select name="il">
+          <option value="">İl Seçiniz</option>
+          <option value="istanbul">İstanbul</option>
+          <option value="ankara">Ankara</option>
+          <option value="izmir">İzmir</option>
+        </select>
+        <select name="ilan-turu">
+          <option value="">İlan Türü</option>
+          <option value="satilik">Satılık</option>
+          <option value="kiralik">Kiralık</option>
+        </select>
+        <input type="text" name="fiyat" placeholder="Fiyat Aralığı">
+        <input type="text" name="oda" placeholder="Oda Sayısı">
+        <button type="submit" class="btn btn-secondary">Ara</button>
+        <button type="reset" class="btn btn-secondary">Temizle</button>
+        <button type="button" class="btn btn-primary" onclick="window.location.href='ilanEkle.php'">İlan Ekle</button>
+      </form>
+    </div>
+  </section>
   <div class="container mt-5">
-    <h1>Hoş Geldiniz!</h1>
-    <p>Prestij Emlak ile hayalinizdeki evi bulun.</p>
+    <!-- İlanlar Bölümü -->
+    <div class="listings mt-5">
+      <div class="listing-grid">
+        <!-- Statik İlan 1 -->
+        <a href="#" style="text-decoration: none; color: inherit;">
+          <div class="listing-card">
+            <img src="https://via.placeholder.com/300x200" alt="İlan Resmi">
+            <div class="card-content">
+              <h3>Satılık Daire</h3>
+              <p>3+1, 120 m², İstanbul</p>
+              <p><strong>Fiyat:</strong> 1,500,000 TL</p>
+            </div>
+          </div>
+        </a>
+        <!-- Statik İlan 2 -->
+        <a href="#" style="text-decoration: none; color: inherit;">
+          <div class="listing-card">
+            <img src="https://via.placeholder.com/300x200" alt="İlan Resmi">
+            <div class="card-content">
+              <h3>Kiralık Daire</h3>
+              <p>2+1, 90 m², Ankara</p>
+              <p><strong>Fiyat:</strong> 5,000 TL</p>
+            </div>
+          </div>
+        </a>
+        <!-- Statik İlan 3 -->
+        <a href="#" style="text-decoration: none; color: inherit;">
+          <div class="listing-card">
+            <img src="https://via.placeholder.com/300x200" alt="İlan Resmi">
+            <div class="card-content">
+              <h3>Satılık Villa</h3>
+              <p>5+2, 300 m², İzmir</p>
+              <p><strong>Fiyat:</strong> 7,500,000 TL</p>
+            </div>
+          </div>
+        </a>
+        <!-- Daha fazla statik ilan eklenebilir -->
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
