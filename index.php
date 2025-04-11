@@ -13,18 +13,11 @@ if ($loggedIn) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Prestij Emlak</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    /* Temel reset */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    /* Genel Stiller */
     body {
-      font-family: Arial, sans-serif;
-      line-height: 1.6;
+      font-family: 'Arial', sans-serif;
       background-color: #f9f9f9;
       color: #333;
     }
@@ -36,36 +29,51 @@ if ($loggedIn) {
     }
 
     header .container {
-      max-width: 1200px;
-      margin: auto;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      height: 60px; /* Fixed height for consistent alignment */
     }
 
     header .logo {
-      font-size: 1.8em;
+      font-size: 1.5em;
       font-weight: bold;
+      line-height: 60px; /* Match container height */
+      padding: 0 20px;
     }
 
     nav ul {
       list-style: none;
       display: flex;
-    }
-
-    nav ul li {
-      margin-left: 20px;
+      gap: 15px;
+      margin: 0;
+      padding: 0;
+      height: 60px; /* Match container height */
+      align-items: center;
     }
 
     nav ul li a {
+      display: inline-block;
+      line-height: 60px; /* Match container height */
+      padding: 0 10px;
       color: #fff;
       text-decoration: none;
       font-weight: bold;
+      transition: color 0.3s ease;
+    }
+
+    nav ul li a:hover {
+      color: #ff6600;
+    }
+
+    .dropdown-toggle {
+      line-height: 60px !important; /* Match container height */
+      padding: 0 10px !important;
     }
 
     .search-section {
       background: url('https://via.placeholder.com/1200x400') no-repeat center/cover;
-      padding: 60px 20px;
+      padding: 80px 20px;
       text-align: center;
       color: #fff;
       position: relative;
@@ -78,7 +86,7 @@ if ($loggedIn) {
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(0, 0, 0, 0.5);
     }
 
     .search-section .search-container {
@@ -89,7 +97,7 @@ if ($loggedIn) {
     }
 
     .search-section h1 {
-      font-size: 2.5em;
+      font-size: 2.8em;
       margin-bottom: 20px;
     }
 
@@ -97,12 +105,12 @@ if ($loggedIn) {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
+      gap: 10px;
     }
 
     .search-form input,
     .search-form select {
       padding: 10px;
-      margin: 5px;
       border: none;
       border-radius: 4px;
       min-width: 150px;
@@ -110,13 +118,17 @@ if ($loggedIn) {
 
     .search-form button {
       padding: 10px 20px;
-      margin: 5px;
       border: none;
       border-radius: 4px;
       background-color: #ff6600;
       color: #fff;
       font-weight: bold;
       cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .search-form button:hover {
+      background-color: #e65c00;
     }
 
     .listings {
@@ -133,9 +145,15 @@ if ($loggedIn) {
 
     .listing-card {
       background-color: #fff;
-      border-radius: 4px;
+      border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .listing-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     }
 
     .listing-card img {
@@ -166,61 +184,36 @@ if ($loggedIn) {
       text-align: center;
     }
 
+    footer a {
+      color: #ff6600;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    footer a:hover {
+      color: #e65c00;
+    }
+
     @media (max-width: 768px) {
       header .container {
         flex-direction: column;
+        text-align: center;
       }
 
       nav ul {
         flex-direction: column;
-        margin-top: 10px;
+        gap: 10px;
       }
 
-      nav ul li {
-        margin: 5px 0;
+      .search-section h1 {
+        font-size: 2em;
       }
     }
   </style>
 </head>
 
 <body>
-  <!-- Header -->
-  <header>
-    <div class="container">
-      <div class="logo">Prestij Emlak</div>
-      <nav>
-        <ul>
-          <li><a href="#">Ana Sayfa</a></li>
-          <li><a href="#">İlanlar</a></li>
-          <li><a href="#">Hakkımızda</a></li>
-          <li><a href="#">İletişim</a></li>
-          <?php if ($loggedIn) { ?>
-            <!-- Kullanıcı oturumu aktifse, kullanıcı bilgilerini gösteren dropdown -->
-            <li>
-              <div class="dropdown">
-                <button class="btn dropdown-toggle" type="button" style="color: white; background-color: #004080; border: none;" data-bs-toggle="dropdown" aria-expanded="false">
-                  <!-- Örnek ikon -->
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
-                    <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
-                  </svg>
-                  <?php echo htmlspecialchars($kullaniciAdi); ?> (<?php echo htmlspecialchars($kullaniciEmail); ?>)
-                </button>
-                <ul class="dropdown-menu">
-                  <li><a class="dropdown-item" href="profil.php">Profil</a></li>
-                  <li><a class="dropdown-item" href="favoriler.php">Favoriler</a></li>
-                  <li><a class="dropdown-item" href="sepet.php">Sepet</a></li>
-                  <li><a class="dropdown-item text-danger" href="cikisYap.php">Çıkış Yap</a></li>
-                </ul>
-              </div>
-            </li>
-          <?php } else { ?>
-            <!-- Kullanıcı oturumu kapalıysa giriş ve kayıt linkleri -->
-            <li><a href="girisYap.php">Giriş Yap</a></li>
-            <li><a href="girisYap.php">Kayıt Ol</a></li>
-          <?php } ?>
-      </nav>
-    </div>
-  </header>
+  <?php include("header.php"); ?>
 
   <!-- Arama Bölümü -->
   <section class="search-section">
@@ -297,7 +290,7 @@ if ($loggedIn) {
     <p>&copy; 2025 Prestij Emlak. Tüm hakları saklıdır.</p>
     <p><a href="#" style="color: #ff6600; text-decoration: none;">İletişim</a> | <a href="#" style="color: #ff6600; text-decoration: none;">Gizlilik Politikası</a></p>
   </footer>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

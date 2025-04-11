@@ -141,8 +141,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Prestij Emlak - İlan Ekle</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
 </head>
 <body>
+<?php include("header.php"); ?>
     <div class="container mt-5">
         <h2>İlan Ekle</h2>
             <form action="" method="POST" enctype="multipart/form-data">

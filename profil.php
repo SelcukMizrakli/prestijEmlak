@@ -1,16 +1,6 @@
-<?php 
-/*
-Profil sayfası içerisinde olması gerekenler:
-    1. Kullanıcı bilgileri (kullanıcı adı, e-posta vb.) gösterilmeli.
-    2. Kullanıcıya ait ilanlar listelenmeli. Her ilan için başlık, açıklama, fiyat ve resim gibi bilgiler gösterilmeli. İlana tıkladığında ilanın istatistiklerini görebilmeli ve ilanı düzenleyebilmelidir.
-    3. Kullanıcıya ait favori ilanlar listelenmeli. Her ilan için başlık, açıklama, fiyat ve resim gibi bilgiler gösterilmeli.
-    4. Kullanıcıya ait mesajlar menüsü olmalı ve menüde daha önceden yaptığı konuşmalar KULLANICI ADI ile gösterilmeli. Her bir konuşmaya tıkladığında mesajlar listelenmeli ve mesaj gönderme alanı olmalı.
-    5. Kullanıcı yetkisine göre diğer ilanlara ve kullanıcılara müdahale edebileceği bir sayfa olmalı (admin yönetim paneli gibi).
-    6. Kullanıcı profilini düzenleyebileceği bir alan olmalı (kullanıcı adı, e-posta, şifre vb. bilgileri güncelleyebilmeli).
-
-*/
+<?php
+/* Üye giriş kontrolü yapılacak*/
 ?>
-
 <!doctype html>
 <html lang="tr">
 <head>
@@ -18,6 +8,7 @@ Profil sayfası içerisinde olması gerekenler:
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Profil - Prestij Emlak</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
     <style>
         .profile-header {
             background-color: #004080;
@@ -43,6 +34,7 @@ Profil sayfası içerisinde olması gerekenler:
     </style>
 </head>
 <body>
+<?php include("header.php"); ?>
     <div class="container mt-5">
         <!-- Kullanıcı Bilgileri -->
         <div class="profile-header text-center">
@@ -181,7 +173,58 @@ Profil sayfası içerisinde olması gerekenler:
 
             <!-- Yönetim Paneli -->
             <div class="tab-pane fade" id="yonetim" role="tabpanel">
-                <p>Yönetim paneli içeriği burada yer alacak. Kullanıcı yetkisine göre diğer ilanlara ve kullanıcılara müdahale edilebilir.</p>
+                <div class="container mt-3">
+                    <h4>Üye Listesi</h4>
+                    <div class="message-list">
+                        <!-- Üye Bilgileri -->
+                        <div class="message-summary border p-3 mb-2" onclick="loadUyeIlanlari(1, 'Kullanıcı Adı 1', 'kullanici1@example.com', 'Admin')">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>Kullanıcı Adı 1</strong>
+                                <small>kullanici1@example.com</small>
+                            </div>
+                            <p>Üye Yetkisi: Admin</p>
+                        </div>
+                        <div class="message-summary border p-3 mb-2" onclick="loadUyeIlanlari(2, 'Kullanıcı Adı 2', 'kullanici2@example.com', 'Kullanıcı')">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>Kullanıcı Adı 2</strong>
+                                <small>kullanici2@example.com</small>
+                            </div>
+                            <p>Üye Yetkisi: Kullanıcı</p>
+                        </div>
+                        <!-- Diğer üyeler burada listelenebilir -->
+                    </div>
+                </div>
+
+                <!-- Üye İlanları ve Yetki Düzenleme Modal -->
+                <div class="modal fade" id="uyeIlanlariModal" tabindex="-1" aria-labelledby="uyeIlanlariModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="uyeIlanlariModalLabel">Üye Bilgileri ve İlanları</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                            </div>
+                            <div class="modal-body">
+                                <!-- Üye Bilgileri -->
+                                <h6 id="uyeAdi"></h6>
+                                <p id="uyeEmail"></p>
+                                <div class="mb-3">
+                                    <label for="uyeYetki" class="form-label">Yetki</label>
+                                    <select class="form-select" id="uyeYetki" name="uyeYetki" required>
+                                        <option value="Admin">Admin</option>
+                                        <option value="Kullanıcı">Kullanıcı</option>
+                                    </select>
+                                    <button class="btn btn-primary btn-sm mt-2" onclick="guncelleYetki()">Yetki Güncelle</button>
+                                </div>
+
+                                <!-- Üye İlanları -->
+                                <h6>Üyenin İlanları</h6>
+                                <div id="uyeIlanlari" class="row">
+                                    <!-- Üyenin ilanları dinamik olarak buraya yüklenecek -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -207,6 +250,10 @@ Profil sayfası içerisinde olması gerekenler:
                         <div class="mb-3">
                             <label for="password" class="form-label">Şifre</label>
                             <input type="password" class="form-control" id="password">
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Tel. No</label>
+                            <input type="tel" class="form-control" id="phone" value="+90 ">
                         </div>
                         <button type="submit" class="btn btn-primary">Kaydet</button>
                     </form>
@@ -361,6 +408,110 @@ Profil sayfası içerisinde olması gerekenler:
             .then(data => {
                 if (data.success) {
                     alert('İlan başarıyla güncellendi!');
+                    location.reload(); // Sayfayı yenile
+                } else {
+                    alert('Bir hata oluştu: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Hata:', error);
+                alert('Bir hata oluştu.');
+            });
+        });
+
+        // Üye ilanlarını yükleme
+        function loadUyeIlanlari(uyeId, uyeAdi, uyeEmail, mevcutYetki) {
+            // Üye bilgilerini modal içine yükle
+            document.getElementById('uyeAdi').innerText = `Üye: ${uyeAdi}`;
+            document.getElementById('uyeEmail').innerText = `E-posta: ${uyeEmail}`;
+            document.getElementById('uyeYetki').value = mevcutYetki;
+
+            // Üyenin ilanlarını yükle
+            const ilanlarDiv = document.getElementById('uyeIlanlari');
+            ilanlarDiv.innerHTML = ''; // Önceki ilanları temizle
+
+            // Örnek ilanlar (AJAX ile sunucudan çekilebilir)
+            const ilanlar = [
+                { id: 1, baslik: 'İlan Başlığı 1', fiyat: 500000 },
+                { id: 2, baslik: 'İlan Başlığı 2', fiyat: 750000 }
+            ];
+
+            ilanlar.forEach(ilan => {
+                const ilanDiv = document.createElement('div');
+                ilanDiv.className = 'col-md-4';
+                ilanDiv.innerHTML = `
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">${ilan.baslik}</h5>
+                            <p class="card-text"><strong>Fiyat:</strong> ${ilan.fiyat} TL</p>
+                            <button class="btn btn-danger btn-sm" onclick="kaldirIlan(${ilan.id})">Kaldır</button>
+                        </div>
+                    </div>
+                `;
+                ilanlarDiv.appendChild(ilanDiv);
+            });
+
+            // Modalı aç
+            const modal = new bootstrap.Modal(document.getElementById('uyeIlanlariModal'));
+            modal.show();
+        }
+
+        // İlan kaldırma
+        function kaldirIlan(ilanId) {
+            if (confirm('Bu ilanı kaldırmak istediğinize emin misiniz?')) {
+                // AJAX ile ilan kaldırma işlemi yapılabilir
+                alert(`İlan ${ilanId} kaldırıldı.`);
+            }
+        }
+
+        // Üye yetkisini güncelleme
+        function guncelleYetki() {
+            const uyeYetki = document.getElementById('uyeYetki').value;
+
+            // AJAX ile yetki güncelleme işlemi yapılabilir
+            alert(`Üyenin yetkisi ${uyeYetki} olarak güncellendi.`);
+        }
+
+        // Üye yetkisini düzenleme
+        document.getElementById('uyeYetkiForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const uyeId = document.getElementById('uyeId').value;
+            const uyeYetki = document.getElementById('uyeYetki').value;
+
+            // AJAX ile yetki düzenleme işlemi yapılabilir
+            alert(`Üye ${uyeId} yetkisi ${uyeYetki} olarak güncellendi.`);
+        });
+
+        // Üye yetkisini düzenleme modalını açma
+        function openYetkiModal(uyeId, mevcutYetki) {
+            document.getElementById('uyeId').value = uyeId;
+            document.getElementById('uyeYetki').value = mevcutYetki;
+
+            // Modalı aç
+            const modal = new bootstrap.Modal(document.getElementById('uyeYetkiModal'));
+            modal.show();
+        }
+
+        // Üye yetkisini düzenleme formunu gönderme
+        document.getElementById('uyeYetkiForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const uyeId = document.getElementById('uyeId').value;
+            const uyeYetki = document.getElementById('uyeYetki').value;
+
+            // AJAX ile yetki düzenleme işlemi yapılabilir
+            fetch('uyeYetkiDuzenle.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `uyeId=${uyeId}&uyeYetki=${uyeYetki}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Üye yetkisi başarıyla güncellendi!');
                     location.reload(); // Sayfayı yenile
                 } else {
                     alert('Bir hata oluştu: ' + data.message);

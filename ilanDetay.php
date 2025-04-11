@@ -59,7 +59,8 @@ $resimler = isset($ilan->resimler) && $ilan->resimler !== null ? explode(',', $i
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Prestij Emlak - İlan Detay</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -297,42 +298,7 @@ $resimler = isset($ilan->resimler) && $ilan->resimler !== null ? explode(',', $i
 </head>
 
 <body>
-    <header>
-        <div class="container">
-            <div class="logo">Prestij Emlak</div>
-            <nav>
-                <ul>
-                    <li><a href="#">Ana Sayfa</a></li>
-                    <li><a href="#">İlanlar</a></li>
-                    <li><a href="#">Hakkımızda</a></li>
-                    <li><a href="#">İletişim</a></li>
-                    <?php if ($loggedIn) { ?>
-                        <!-- Kullanıcı oturumu aktifse, kullanıcı bilgilerini gösteren dropdown -->
-                        <li>
-                            <div class="dropdown">
-                                <button class="btn dropdown-toggle" type="button" style="color: white; background-color: #004080; border: none;" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <!-- Örnek ikon -->
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
-                                        <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
-                                    </svg>
-                                    <?php echo htmlspecialchars($kullaniciAdi); ?> (<?php echo htmlspecialchars($kullaniciEmail); ?>)
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="profil.php">Profil</a></li>
-                                    <li><a class="dropdown-item" href="favoriler.php">Favoriler</a></li>
-                                    <li><a class="dropdown-item" href="sepet.php">Sepet</a></li>
-                                    <li><a class="dropdown-item text-danger" href="cikisYap.php">Çıkış Yap</a></li>
-                                </ul>
-                            </div>
-                        </li>
-                    <?php } else { ?>
-                        <!-- Kullanıcı oturumu kapalıysa giriş ve kayıt linkleri -->
-                        <li><a href="girisYap.php">Giriş Yap</a></li>
-                        <li><a href="girisYap.php">Kayıt Ol</a></li>
-                    <?php } ?>
-            </nav>
-        </div>
-    </header>
+    <?php include("header.php"); ?>
     <div class="container mt-5">
         <div class="image-container">
             <button class="nav-button left" onclick="changeImage(-1)">&#10094;</button>
