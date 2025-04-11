@@ -14,6 +14,7 @@ if ($loggedIn) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Prestij Emlak</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="style.css" rel="stylesheet">
   <style>
     /* Genel Stiller */
     body {

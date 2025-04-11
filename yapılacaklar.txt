@@ -1,21 +1,22 @@
 *Kullanıcıya özel profil oluşturulacak (yetkilere göre)
 
-*   profilde ilanlarım sayfası olacak ve ilanların detayları görüntülenecek
 *   ilanları silme ve düzenleme yetkisi kullanıcıya verilecek
-*   ilanlar sayfası oluşturulacak ve ilanların listelenmesi yapılacak
-*   hakkımızda sayfası oluşturulacak
-*   iletişim sayfası oluşturulacak
+
+
+
+
 **  ilan oluşturmak için kullanıcıya form doldurması gerekecek
 *   formda kullanıcıya ad soyad, telefon numarası, e-posta adresi, ilan türü, ilan başlığı, ilan açıklaması, ilan fiyatı, ilan fotoğrafı,
-        ilan adresi, ilan tarihleri, ilan statüsü, ilan görünürlüğü, ilan kategorisi, ilan etiketi, ilan linki
-
-/Yapılanlar: İlan ekleme başarılı. İlan detay sayfasında görüntüleme başarılı.\
-Yapılacaklar: İlan ekleme ve ilan detay sayfalarının görüntüleri düzeltilecek, ilan detay sayfasındaki resimlerin görüntülenme biçimi düzenlenecek.
+        ilan adresi, ilan tarihleri, ilan statüsü, ilan görünürlüğü, ilan kategorisi
 
 ** ilanı her ziyaret edişimizde ilan istatistiklerindeki t_istatistik tablosundaki istatistikGoruntulenmeSayisi artmalı
+
 ** ilan detay sayfasına mesaj yazma özelliği eklenmeli (ilan veren kendisine mesaj gönderememeli)
+
 ** ilan detay sayfasına ilan verenin telefon numarası da eklenmeli
+
 *** navbar'daki profil dropdown'una mesajlarım da eklenebilir
-*** ilan verenin profil sayfasına ilan vermiş olduğu ilanların listelenmesi yapılabilir
+
+
 
 // ilan ekleme sayfasında kaldık. Girilen bilgileri veri tabanına kaydedeceğiz. (t_ilanlar, t_ilandetay, t_adresler, t_ilantur tabloları kullanılacak)

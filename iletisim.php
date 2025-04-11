@@ -8,16 +8,60 @@ session_start();
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>İletişim - Prestij Emlak</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
   <link href="style.css" rel="stylesheet">
+  <style>
+    .contact-icons {
+      font-size: 2rem;
+      margin: 10px;
+      color: #004080;
+      transition: color 0.3s ease;
+    }
+
+    .contact-icons:hover {
+      color: #ff6600;
+    }
+
+    .contact-section {
+      text-align: center;
+      margin-top: 50px;
+    }
+
+    .contact-section h1 {
+      margin-bottom: 20px;
+    }
+
+    .contact-section p {
+      font-size: 1.2rem;
+      margin-bottom: 30px;
+    }
+  </style>
 </head>
 <body>
   <?php include("header.php"); ?>
 
   <div class="container mt-5">
-    <h1>Hoş Geldiniz!</h1>
-    <p>Prestij Emlak ile hayalinizdeki evi bulun.</p>
+    <div class="contact-section">
+      <h1>Bizimle İletişime Geçin</h1>
+      <p>Prestij Emlak olarak size yardımcı olmaktan mutluluk duyarız. Aşağıdaki bağlantılar üzerinden bize ulaşabilirsiniz:</p>
+      <div>
+        <!-- Instagram -->
+        <a href="https://www.instagram.com/prestijemlak" target="_blank" class="contact-icons">
+          <i class="bi bi-instagram"></i>
+        </a>
+        <!-- WhatsApp -->
+        <a href="https://wa.me/900000000000" target="_blank" class="contact-icons">
+          <i class="bi bi-whatsapp"></i>
+        </a>
+        <!-- Mail -->
+        <a href="mailto:info@prestijemlak.com" target="_blank" class="contact-icons">
+          <i class="bi bi-envelope"></i>
+        </a>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.js"></script>
 </body>
 </html>
