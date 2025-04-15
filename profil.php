@@ -3,6 +3,7 @@
 ?>
 <!doctype html>
 <html lang="tr">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,25 +17,30 @@
             padding: 20px;
             border-radius: 8px;
         }
+
         .profile-header h2 {
             margin-bottom: 10px;
         }
+
         .nav-tabs .nav-link.active {
             background-color: #004080;
             color: white;
         }
+
         .card img {
             height: 150px;
             object-fit: cover;
         }
+
         .message-container {
             max-height: 300px;
             overflow-y: auto;
         }
     </style>
 </head>
+
 <body>
-<?php include("header.php"); ?>
+    <?php include("header.php"); ?>
     <div class="container mt-5">
         <!-- Kullanıcı Bilgileri -->
         <div class="profile-header text-center">
@@ -273,7 +279,7 @@
                 <div class="modal-body">
                     <form id="editIlanForm" enctype="multipart/form-data">
                         <input type="hidden" id="ilanId" name="ilanId">
-                        
+
                         <!-- Başlık -->
                         <div class="mb-3">
                             <label for="ilanBaslik" class="form-label">Başlık</label>
@@ -343,7 +349,10 @@
             </div>
         </div>
     </div>
-
+    <footer>
+        <p>&copy; 2025 Prestij Emlak. Tüm hakları saklıdır.</p>
+        <p><a href="#" style="color: #ff6600; text-decoration: none;">İletişim</a> | <a href="#" style="color: #ff6600; text-decoration: none;">Gizlilik Politikası</a></p>
+    </footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function toggleMessageBox(sohbetId) {
@@ -393,7 +402,7 @@
         }
 
         // Form gönderme işlemi
-        document.getElementById('editIlanForm').addEventListener('submit', function (e) {
+        document.getElementById('editIlanForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
             // Form verilerini al
@@ -401,22 +410,22 @@
 
             // AJAX ile düzenleme işlemini gönder
             fetch('ilanDuzenle.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('İlan başarıyla güncellendi!');
-                    location.reload(); // Sayfayı yenile
-                } else {
-                    alert('Bir hata oluştu: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Hata:', error);
-                alert('Bir hata oluştu.');
-            });
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('İlan başarıyla güncellendi!');
+                        location.reload(); // Sayfayı yenile
+                    } else {
+                        alert('Bir hata oluştu: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Hata:', error);
+                    alert('Bir hata oluştu.');
+                });
         });
 
         // Üye ilanlarını yükleme
@@ -431,9 +440,16 @@
             ilanlarDiv.innerHTML = ''; // Önceki ilanları temizle
 
             // Örnek ilanlar (AJAX ile sunucudan çekilebilir)
-            const ilanlar = [
-                { id: 1, baslik: 'İlan Başlığı 1', fiyat: 500000 },
-                { id: 2, baslik: 'İlan Başlığı 2', fiyat: 750000 }
+            const ilanlar = [{
+                    id: 1,
+                    baslik: 'İlan Başlığı 1',
+                    fiyat: 500000
+                },
+                {
+                    id: 2,
+                    baslik: 'İlan Başlığı 2',
+                    fiyat: 750000
+                }
             ];
 
             ilanlar.forEach(ilan => {
@@ -473,7 +489,7 @@
         }
 
         // Üye yetkisini düzenleme
-        document.getElementById('uyeYetkiForm').addEventListener('submit', function (e) {
+        document.getElementById('uyeYetkiForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
             const uyeId = document.getElementById('uyeId').value;
@@ -494,7 +510,7 @@
         }
 
         // Üye yetkisini düzenleme formunu gönderme
-        document.getElementById('uyeYetkiForm').addEventListener('submit', function (e) {
+        document.getElementById('uyeYetkiForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
             const uyeId = document.getElementById('uyeId').value;
@@ -502,26 +518,27 @@
 
             // AJAX ile yetki düzenleme işlemi yapılabilir
             fetch('uyeYetkiDuzenle.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `uyeId=${uyeId}&uyeYetki=${uyeYetki}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('Üye yetkisi başarıyla güncellendi!');
-                    location.reload(); // Sayfayı yenile
-                } else {
-                    alert('Bir hata oluştu: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Hata:', error);
-                alert('Bir hata oluştu.');
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `uyeId=${uyeId}&uyeYetki=${uyeYetki}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Üye yetkisi başarıyla güncellendi!');
+                        location.reload(); // Sayfayı yenile
+                    } else {
+                        alert('Bir hata oluştu: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Hata:', error);
+                    alert('Bir hata oluştu.');
+                });
         });
     </script>
 </body>
+
 </html>

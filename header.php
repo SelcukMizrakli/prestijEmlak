@@ -1,6 +1,6 @@
 <!-- filepath: c:\xampp\htdocs\prestijemlak\header.php -->
 <header>
-    <div class="container">
+    <div class="container" style="margin-bottom: -0.8%;">
         <div class="logo">Prestij Emlak</div>
         <nav>
             <ul>
@@ -11,7 +11,7 @@
                 <?php if (isset($_SESSION['giris']) && $_SESSION['giris']) { ?>
                     <li>
                         <div class="dropdown">
-                        <button class="btn dropdown-toggle" type="button" style="color: white; background-color: #004080; border: none;" data-bs-toggle="dropdown" aria-expanded="false">
+                            <button class="btn dropdown-toggle" type="button" style="color: white; background-color: #004080; border: none;" data-bs-toggle="dropdown" aria-expanded="false">
                                 <?php echo htmlspecialchars($_SESSION['uyeAd']); ?> (<?php echo htmlspecialchars($_SESSION['uyeMail']); ?>)
                             </button>
                             <ul class="dropdown-menu">

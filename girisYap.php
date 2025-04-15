@@ -209,7 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 
 <body>
-<?php include("header.php"); ?>
+  <?php include("header.php"); ?>
   <div class="header">
     <h1>Prestij Emlak</h1>
     <!-- Giriş ve Kayıt butonları -->
@@ -247,6 +247,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
   </div>
 
+  <footer style="margin-top: 30.15%;">
+    <p>&copy; 2025 Prestij Emlak. Tüm hakları saklıdır.</p>
+    <p><a href="#" style="color: #ff6600; text-decoration: none;">İletişim</a> | <a href="#" style="color: #ff6600; text-decoration: none;">Gizlilik Politikası</a></p>
+  </footer>
   <script>
     // Modal öğelerini tanımlıyoruz
     var loginModal = document.getElementById("loginModal");

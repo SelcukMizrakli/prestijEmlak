@@ -136,6 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!doctype html>
 <html lang="tr">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -143,123 +144,124 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="style.css" rel="stylesheet">
 </head>
+
 <body>
-<?php include("header.php"); ?>
-    <div class="container mt-5">
+    <?php include("header.php"); ?>
+    <div class="container mt-5" style="width: 30%;">
         <h2>İlan Ekle</h2>
-            <form action="" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+        <form action="" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
             <h4>Adres Bilgileri</h4>
             <div class="mb-3">
-                <label for="adresBaslik" class="form-label">Adres Başlık</label>
-                <input type="text" class="form-control" id="adresBaslik" name="adresBaslik" required>
+                <input type="text" class="form-control" placeholder="Adres Başlık" id="adresBaslik" name="adresBaslik" required>
+            </div>
+            <div class="d-flex gap-3"><!-- Flexbox ile yan yana dizme -->
+                <div class="mb-3" style="flex: 1;">
+                    <input type="text" class="form-control" placeholder="Mahalle" id="adresMahalle" name="adresMahalle" required>
+                </div>
+                <div class="mb-3" style="flex: 1;">
+                    <input type="text" class="form-control" placeholder="İlçe" id="adresIlce" name="adresIlce" required>
+                </div>
+                <div class="mb-3" style="flex: 1;">
+                    <input type="text" class="form-control" placeholder="Şehir" id="adresSehir" name="adresSehir" required>
+                </div>
+            </div>
+            <div class="d-flex gap-3">
+                <div class="mb-3" style="flex: 1;">
+                    <input type="text" class="form-control" placeholder="Ülke" id="adresUlke" name="adresUlke" required>
+                </div>
+                <div class="mb-3" style="flex: 1;">
+                    <input type="text" class="form-control" placeholder="Posta Kodu" id="adresPostaKodu" name="adresPostaKodu" required>
+                </div>
+                <div class="mb-3">
+                    <input type="text" class="form-control" placeholder="Konum Bilgisi" id="ilanKonum" name="ilanKonum" required>
+                </div>
             </div>
             <div class="mb-3">
-                <label for="adresMahalle" class="form-label">Mahalle</label>
-                <input type="text" class="form-control" id="adresMahalle" name="adresMahalle" required>
-            </div>
-            <div class="mb-3">
-                <label for="adresIlce" class="form-label">İlçe</label>
-                <input type="text" class="form-control" id="adresIlce" name="adresIlce" required>
-            </div>
-            <div class="mb-3">
-                <label for="adresSehir" class="form-label">Şehir</label>
-                <input type="text" class="form-control" id="adresSehir" name="adresSehir" required>
-            </div>
-            <div class="mb-3">
-                <label for="adresUlke" class="form-label">Ülke</label>
-                <input type="text" class="form-control" id="adresUlke" name="adresUlke" required>
-            </div>
-            <div class="mb-3">
-                <label for="adresPostaKodu" class="form-label">Posta Kodu</label>
-                <input type="text" class="form-control" id="adresPostaKodu" name="adresPostaKodu" required>
+                <textarea class="form-control" id="ilanDAciklama" placeholder="Adresin detaylı açıklaması" name="ilanDAciklama" required></textarea>
             </div>
 
             <h4>İlan Bilgileri</h4>
-            <input type="hidden" name="ilanUyeID" value="<?php echo $_SESSION['giris']['uyeID'] ?? ''; ?>">
-            <div class="mb-3">
-                <label for="ilanDurum" class="form-label">İlan Durumu</label>
-                <select class="form-select" id="ilanDurum" name="ilanDurum" required>
-                    <option value="1">Aktif</option>
-                    <option value="0">Pasif</option>
-                    <option value="2">Satıldı</option>
-                    <option value="3">Kiralandı</option>
-                </select>
+            <input type="hidden" name="ilanUyeID" value="<?php echo $_SESSION['uyeID'] ?? ''; ?>">
+            <div class="d-flex gap-3">
+                <div class="mb-3" style="width: 40%;">
+                    <select class="form-select" id="ilanDurum" name="ilanDurum" required>
+                        <option value="" disabled selected>İlan Durumu</option>
+                        <option value="1">Aktif</option>
+                        <option value="0">Pasif</option>
+                        <option value="2">Satıldı</option>
+                        <option value="3">Kiralandı</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <input type="text" class="form-control" placeholder="İlan Türü" id="ilanTur" name="ilanTur" required>
+                </div>
+                <div class="mb-3">
+                    <input type="text" class="form-control" placeholder="Mülk Tipi" id="ilanMulkTipi" name="ilanMulkTipi" required>
+                </div>
             </div>
-            <div class="mb-3">
-                <label for="ilanFiyat" class="form-label">Fiyat</label>
-                <input type="number" class="form-control" id="ilanFiyat" name="ilanFiyat" required>
+            <div class="d-flex gap-3">
+                <div class="mb-3">
+                    <input type="number" class="form-control" placeholder="Fiyat" id="ilanFiyat" name="ilanFiyat" required>
+                </div>
+                <div class="mb-3">
+                    <input type="number" class="form-control" placeholder="Brüt Metrekare" id="ilanMetrekareBrut" name="ilanMetrekareBrut" required>
+                </div>
+                <div class="mb-3">
+                    <input type="number" class="form-control" placeholder="Net Metrekare" id="ilanMetrekareNet" name="ilanMetrekareNet" required>
+                </div>
             </div>
-            <div class="mb-3">
-                <label for="ilanMetrekareBrut" class="form-label">Brüt Metrekare</label>
-                <input type="number" class="form-control" id="ilanMetrekareBrut" name="ilanMetrekareBrut" required>
+            <div class="d-flex gap-3">
+                <div class="mb-3" style="width: 33%;">
+                    <select class="form-select" id="ilanOdaSayisi" name="ilanOdaSayisi" required>
+                        <option value="" disabled selected>Oda Sayısı</option>
+                        <option value="1+1">1+1</option>
+                        <option value="2+1">2+1</option>
+                        <option value="3+1">3+1</option>
+                        <option value="4+1">4+1</option>
+                        <option value="5+1">5+1</option>
+                        <option value="1+0">1+0</option>
+                        <option value="2+0">2+0</option>
+                        <option value="3+0">3+0</option>
+                        <!-- Diğer seçenekleri ekleyebilirsiniz -->
+                    </select>
+                </div>
+                <div class="mb-3" style="width: 33%;">
+                    <input type="number" class="form-control" placeholder="Bina Yaşı" id="ilanBinaYasi" name="ilanBinaYasi" required>
+                </div>
+                <div class="mb-3" style="width: 33%;">
+                    <select class="form-select" id="ilanSiteIcerisindeMi" name="ilanSiteIcerisindeMi" required>
+                        <option value="" disabled selected>Site İçerisinde mi</option>
+                        <option value="1">Evet</option>
+                        <option value="0">Hayır</option>
+                    </select>
+                </div>
             </div>
-            <div class="mb-3">
-                <label for="ilanMetrekareNet" class="form-label">Net Metrekare</label>
-                <input type="number" class="form-control" id="ilanMetrekareNet" name="ilanMetrekareNet" required>
+            <div class="d-flex gap-3">
+                <div class="mb-3">
+                    <input type="text" class="form-control" placeholder="Isıtma Tipi" id="ilanIsitmaTipi" name="ilanIsitmaTipi" required>
+                </div>
+                <div class="mb-3">
+                    <input type="number" class="form-control" placeholder="Bulunduğu Kat" id="ilanBulunduguKat" name="ilanBulunduguKat" required>
+                </div>
+                <div class="mb-3">
+                    <input type="number" class="form-control" placeholder="Bina Kat Sayısı" id="ilanBinaKatSayisi" name="ilanBinaKatSayisi" required>
+                </div>
             </div>
-            <div class="mb-3">
-                <label for="ilanOdaSayisi" class="form-label">Oda Sayısı</label>
-                <select class="form-select" id="ilanOdaSayisi" name="ilanOdaSayisi" required>
-                    <option value="">Seçiniz</option>
-                    <option value="1+1">1+1</option>
-                    <option value="2+1">2+1</option>
-                    <option value="3+1">3+1</option>
-                    <option value="4+1">4+1</option>
-                    <option value="5+1">5+1</option>
-                    <option value="1+0">1+0</option>
-                    <option value="2+0">2+0</option>
-                    <option value="3+0">3+0</option>
-                    <!-- Diğer seçenekleri ekleyebilirsiniz -->
-                </select>
-            </div>
-            <div class="mb-3">
-                <label for="ilanBinaYasi" class="form-label">Bina Yaşı</label>
-                <input type="number" class="form-control" id="ilanBinaYasi" name="ilanBinaYasi" required>
-            </div>
-            <div class="mb-3">
-                <label for="ilanSiteIcerisindeMi" class="form-label">Site İçerisinde Mi?</label>
-                <select class="form-select" id="ilanSiteIcerisindeMi" name="ilanSiteIcerisindeMi" required>
-                    <option value="1">Evet</option>
-                    <option value="0">Hayır</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label for="ilanMulkTuru" class="form-label">Mülk Türü</label>
-                <input type="text" class="form-control" id="ilanMulkTuru" name="ilanMulkTuru" required>
-            </div>
-            <div class="mb-3">
-                <label for="ilanKonum" class="form-label">Konum</label>
-                <input type="text" class="form-control" id="ilanKonum" name="ilanKonum" required>
-            </div>
-            <div class="mb-3">
-                <label for="ilanIsitmaTipi" class="form-label">Isıtma Tipi</label>
-                <input type="text" class="form-control" id="ilanIsitmaTipi" name="ilanIsitmaTipi" required>
-            </div>
-            <div class="mb-3">
-                <label for="ilanBulunduguKat" class="form-label">Bulunduğu Kat</label>
-                <input type="number" class="form-control" id="ilanBulunduguKat" name="ilanBulunduguKat" required>
-            </div>
-            <div class="mb-3">
-                <label for="ilanBinaKatSayisi" class="form-label">Bina Kat Sayısı</label>
-                <input type="number" class="form-control" id="ilanBinaKatSayisi" name="ilanBinaKatSayisi" required>
-            </div>
-            <div class="mb-3">
-                <label for="ilanTur" class="form-label">İlan Türü</label>
-                <input type="text" class="form-control" id="ilanTur" name="ilanTur" required>
-            </div>
-            <div class="mb-3">
-                <label for="ilanDAciklama" class="form-label">Açıklama</label>
-                <textarea class="form-control" id="ilanDAciklama" name="ilanDAciklama" required></textarea>
-            </div>
-            <div class="mb-3">
+            <div class="mb-3" style="width: 60%; margin: auto;">
                 <label for="ilanResimler" class="form-label">İlan Resimleri (En fazla 25 adet)</label>
                 <input type="file" class="form-control" id="ilanResimler" name="ilanResimler[]" multiple accept="image/*">
-                <small class="form-text text-muted">Birden fazla resim seçmek için Ctrl veya Shift tuşunu kullanabilirsiniz.</small>
+                <small class="form-text text-muted">Birden fazla resim seçmek için Ctrl veya Shift tuşunu kullanabilirsiniz.</small><br><br>
+                <button type="submit" class="btn btn-primary" style="margin-left: 33%;">İlan Ekle</button><br><br>
             </div>
-            <button type="submit" class="btn btn-primary">İlan Ekle</button>
+
         </form>
     </div>
+    <footer>
+        <p>&copy; 2025 Prestij Emlak. Tüm hakları saklıdır.</p>
+        <p><a href="#" style="color: #ff6600; text-decoration: none;">İletişim</a> | <a href="#" style="color: #ff6600; text-decoration: none;">Gizlilik Politikası</a></p>
+    </footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>

@@ -3,6 +3,7 @@ session_start();
 ?>
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -37,6 +38,7 @@ session_start();
     }
   </style>
 </head>
+
 <body>
   <?php include("header.php"); ?>
 
@@ -46,22 +48,26 @@ session_start();
       <p>Prestij Emlak olarak size yardımcı olmaktan mutluluk duyarız. Aşağıdaki bağlantılar üzerinden bize ulaşabilirsiniz:</p>
       <div>
         <!-- Instagram -->
-        <a href="https://www.instagram.com/prestijemlak" target="_blank" class="contact-icons">
+        <a href="https://www.instagram.com/selcukmzrkl" target="_blank" class="contact-icons">
           <i class="bi bi-instagram"></i>
         </a>
         <!-- WhatsApp -->
-        <a href="https://wa.me/900000000000" target="_blank" class="contact-icons">
+        <a href="https://wa.me/+905313173971" target="_blank" class="contact-icons">
           <i class="bi bi-whatsapp"></i>
         </a>
         <!-- Mail -->
-        <a href="mailto:info@prestijemlak.com" target="_blank" class="contact-icons">
+        <a href="mailto:selcukmizrakli20@gmail.com" target="_blank" class="contact-icons">
           <i class="bi bi-envelope"></i>
         </a>
       </div>
     </div>
   </div>
-
+  <footer>
+    <p>&copy; 2025 Prestij Emlak. Tüm hakları saklıdır.</p>
+    <p><a href="#" style="color: #ff6600; text-decoration: none;">İletişim</a> | <a href="#" style="color: #ff6600; text-decoration: none;">Gizlilik Politikası</a></p>
+  </footer>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.js"></script>
 </body>
+
 </html>

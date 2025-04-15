@@ -3,6 +3,7 @@ session_start();
 ?>
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,6 +11,7 @@ session_start();
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="style.css" rel="stylesheet">
 </head>
+
 <body>
   <?php include("header.php"); ?>
 
@@ -21,15 +23,15 @@ session_start();
       </div>
       <div class="col-md-6">
         <p>
-          Prestij Emlak olarak, üyelerimize en iyi hizmeti sunmayı ve hayallerindeki evi bulmalarına yardımcı olmayı misyon edindik. 
+          Prestij Emlak olarak, üyelerimize en iyi hizmeti sunmayı ve hayallerindeki evi bulmalarına yardımcı olmayı misyon edindik.
           Yılların tecrübesiyle, güvenilir ve profesyonel bir emlak platformu olarak sektördeki yerimizi sağlamlaştırdık.
         </p>
         <p>
-          Üyelerimizin memnuniyeti bizim için her zaman önceliklidir. Bu nedenle, geniş ilan portföyümüz ve kullanıcı dostu platformumuzla 
+          Üyelerimizin memnuniyeti bizim için her zaman önceliklidir. Bu nedenle, geniş ilan portföyümüz ve kullanıcı dostu platformumuzla
           her ihtiyaca uygun çözümler sunuyoruz. İster satılık ister kiralık bir ev arıyor olun, Prestij Emlak sizin yanınızda.
         </p>
         <p>
-          Ekibimiz, dürüstlük ve şeffaflık ilkeleriyle çalışarak, üyelerimize en iyi deneyimi sunmayı taahhüt eder. 
+          Ekibimiz, dürüstlük ve şeffaflık ilkeleriyle çalışarak, üyelerimize en iyi deneyimi sunmayı taahhüt eder.
           Hayalinizdeki evi bulmak için doğru adrestesiniz!
         </p>
       </div>
@@ -41,7 +43,11 @@ session_start();
       </p>
     </div>
   </div>
-
+  <footer>
+    <p>&copy; 2025 Prestij Emlak. Tüm hakları saklıdır.</p>
+    <p><a href="#" style="color: #ff6600; text-decoration: none;">İletişim</a> | <a href="#" style="color: #ff6600; text-decoration: none;">Gizlilik Politikası</a></p>
+  </footer>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
