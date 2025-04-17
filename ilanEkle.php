@@ -19,118 +19,101 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         die("CSRF token validation failed");
     }
 
-    // Adres bilgilerini al ve sanitize et
+    // Formdan gelen veriler
+    $uyeID = $_SESSION['uyeID']; // Kullanıcının oturumdaki ID'si
+    $mulkTipi = htmlspecialchars($_POST['ilanMulkTuru'], ENT_QUOTES, 'UTF-8'); // Örn: "Daire"
+    $ilanTur = htmlspecialchars($_POST['ilanTur'], ENT_QUOTES, 'UTF-8'); // Örn: "Satılık"
     $adresBaslik = htmlspecialchars($_POST['adresBaslik'], ENT_QUOTES, 'UTF-8');
     $adresMahalle = htmlspecialchars($_POST['adresMahalle'], ENT_QUOTES, 'UTF-8');
     $adresIlce = htmlspecialchars($_POST['adresIlce'], ENT_QUOTES, 'UTF-8');
     $adresSehir = htmlspecialchars($_POST['adresSehir'], ENT_QUOTES, 'UTF-8');
     $adresUlke = htmlspecialchars($_POST['adresUlke'], ENT_QUOTES, 'UTF-8');
     $adresPostaKodu = htmlspecialchars($_POST['adresPostaKodu'], ENT_QUOTES, 'UTF-8');
+    $ilanDurum = intval($_POST['ilanDurum']); // Varsayılan olarak aktif
+    $ilanAciklama = htmlspecialchars($_POST['ilanDAciklama'], ENT_QUOTES, 'UTF-8');
+    $ilanFiyat = floatval($_POST['ilanFiyat']);
+    $metreKareBrut = floatval($_POST['ilanMetrekareBrut']);
+    $metreKareNet = floatval($_POST['ilanMetrekareNet']);
+    $odaSayisi = htmlspecialchars($_POST['ilanOdaSayisi'], ENT_QUOTES, 'UTF-8');
+    $binaYasi = intval($_POST['ilanBinaYasi']);
+    $siteIcerisindeMi = intval($_POST['ilanSiteIcerisindeMi']); // 0: Hayır, 1: Evet
+    $mulkTuru = htmlspecialchars($_POST['ilanMulkTuru'], ENT_QUOTES, 'UTF-8'); // Örn: "Ev"
+    $konumBilgisi = htmlspecialchars($_POST['ilanKonum'], ENT_QUOTES, 'UTF-8');
+    $isitmaTipi = htmlspecialchars($_POST['ilanIsitmaTipi'], ENT_QUOTES, 'UTF-8');
+    $bulunduguKat = intval($_POST['ilanBulunduguKat']);
+    $binaKatSayisi = intval($_POST['ilanBinaKatSayisi']);
 
-    // Mülk tipi bilgisi
-    $mulkTipiBaslik = htmlspecialchars($_POST['ilanMulkTuru'], ENT_QUOTES, 'UTF-8');
+    // Veritabanı işlemleri
+    try {
+        $baglan->begin_transaction();
 
-    // İlan türü bilgisi
-    $ilanTurAdi = htmlspecialchars($_POST['ilanTur'], ENT_QUOTES, 'UTF-8');
+        // 1. t_mulktipi tablosuna ekleme
+        $stmt = $baglan->prepare("INSERT INTO t_mulktipi (mulkTipiBaslik) VALUES (?)");
+        $stmt->bind_param("s", $mulkTipi);
+        $stmt->execute();
+        $mulkTipiID = $baglan->insert_id;
 
-    // İlan bilgilerini al
-    $ilanDurum = $_POST['ilanDurum'];
-    $ilanUyeID = $_SESSION['uyeID'];
+        // 2. t_ilantur tablosuna ekleme
+        $stmt = $baglan->prepare("INSERT INTO t_ilantur (ilanTurAdi) VALUES (?)");
+        $stmt->bind_param("s", $ilanTur);
+        $stmt->execute();
+        $ilanTurID = $baglan->insert_id;
 
-    // İlan detay bilgilerini al
-    $ilanDAciklama = htmlspecialchars($_POST['ilanDAciklama'], ENT_QUOTES, 'UTF-8');
-    $ilanDBinaKatSayisi = intval($_POST['ilanBinaKatSayisi']);
-    $ilanDBinaYasi = intval($_POST['ilanBinaYasi']);
-    $ilanDBulunduguKatSayisi = intval($_POST['ilanBulunduguKat']);
-    $ilanDFiyat = floatval($_POST['ilanFiyat']);
-    $ilanDIsıtmaTipi = htmlspecialchars($_POST['ilanIsitmaTipi'], ENT_QUOTES, 'UTF-8');
-    $ilanDKonumBilgisi = htmlspecialchars($_POST['ilanKonum'], ENT_QUOTES, 'UTF-8');
-    $ilanDmetreKareBrut = floatval($_POST['ilanMetrekareBrut']);
-    $ilanDmetreKareNet = floatval($_POST['ilanMetrekareNet']);
-    $ilanDOdaSayisi = htmlspecialchars($_POST['ilanOdaSayisi'], ENT_QUOTES, 'UTF-8');
-    $ilanDSiteIcerisindeMi = intval($_POST['ilanSiteIcerisindeMi']);
+        // 3. t_adresler tablosuna ekleme
+        $stmt = $baglan->prepare("INSERT INTO t_adresler (adresBaslik, adresMahalle, adresIlce, adresSehir, adresUlke, adresPostaKodu, adresEklenmeTarihi, adresGuncellenmeTarihi, adresSilinmeTarihi) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW(), NULL)");
+        $stmt->bind_param("ssssss", $adresBaslik, $adresMahalle, $adresIlce, $adresSehir, $adresUlke, $adresPostaKodu);
+        $stmt->execute();
+        $adresID = $baglan->insert_id;
 
-    // Adres bilgilerini t_adresler tablosuna kaydet
-    $adresSorgu = $baglan->prepare("INSERT INTO t_adresler (adresBaslik, adresMahalle, adresIlce, adresSehir, adresUlke, adresPostaKodu, adresEklenmeTarihi, adresGuncellenmeTarihi, adresSilinmeTarihi) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW(), NULL)");
-    $adresSorgu->bind_param("ssssss", $adresBaslik, $adresMahalle, $adresIlce, $adresSehir, $adresUlke, $adresPostaKodu);
-    $adresSorgu->execute();
-    $adresID = $baglan->insert_id;
+        // 4. t_ilanlar tablosuna ekleme
+        $stmt = $baglan->prepare("INSERT INTO t_ilanlar (ilanUyeID, ilanAdresID, ilanDurum, ilanYayinTarihi, ilanGuncellenmeTarihi, ilanSilinmeTarihi) VALUES (?, ?, ?, NOW(), NOW(), NULL)");
+        $stmt->bind_param("iii", $uyeID, $adresID, $ilanDurum);
+        $stmt->execute();
+        $ilanID = $baglan->insert_id;
 
-    // Mülk tipi bilgilerini t_mulktipi tablosuna kaydet
-    $mulkTipiSorgu = $baglan->prepare("INSERT INTO t_mulktipi (mulkTipiBaslik) VALUES (?)");
-    $mulkTipiSorgu->bind_param("s", $mulkTipiBaslik);
-    $mulkTipiSorgu->execute();
-    $mulkTipiID = $baglan->insert_id;
+        // 5. t_ilandetay tablosuna ekleme
+        $stmt = $baglan->prepare("INSERT INTO t_ilandetay (ilanDilanID, ilanDAciklama, ilanDFiyat, ilanDmetreKareBrut, ilanDmetreKareNet, ilanDOdaSayisi, ilanDBinaYasi, ilanDSiteIcerisindeMi, ilanDMulkTipiID, ilanDMulkTuru, ilanDKonumBilgisi, ilanDIsitmaTipi, ilanDBulunduguKatSayisi, ilanDBinaKatSayisi, ilanDIlanTurID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("isiiiiiiisssiii", $ilanID, $ilanAciklama, $ilanFiyat, $metreKareBrut, $metreKareNet, $odaSayisi, $binaYasi, $siteIcerisindeMi, $mulkTipiID, $mulkTuru, $konumBilgisi, $isitmaTipi, $bulunduguKat, $binaKatSayisi, $ilanTurID);
+        $stmt->execute();
 
-    // İlan türü bilgilerini t_ilantur tablosuna kaydet
-    $ilanTurSorgu = $baglan->prepare("INSERT INTO t_ilantur (ilanTurAdi) VALUES (?)");
-    $ilanTurSorgu->bind_param("s", $ilanTurAdi);
-    $ilanTurSorgu->execute();
-    $ilanTurID = $baglan->insert_id;
+        // Resimleri yükle ve t_resimler tablosuna kaydet
+        if (isset($_FILES['ilanResimler']) && count($_FILES['ilanResimler']['tmp_name']) > 0) {
+            $uploads_dir = "uploads";
+            if (!is_dir($uploads_dir)) {
+                mkdir($uploads_dir, 0777, true); // Klasör yoksa oluştur
+            }
 
-    // İlan bilgilerini t_ilanlar tablosuna kaydet
-    $ilanSorgu = $baglan->prepare("INSERT INTO t_ilanlar (ilanAdresID, ilanDurum, ilanYayinTarihi, ilanGuncellenmeTarihi, ilanSilinmeTarihi, ilanUyeID) VALUES (?, ?, NOW(), NOW(), NULL, ?)");
-    $ilanSorgu->bind_param("iii", $adresID, $ilanDurum, $ilanUyeID);
-    $ilanSorgu->execute();
-    $ilanID = $baglan->insert_id;
+            foreach ($_FILES['ilanResimler']['tmp_name'] as $key => $tmp_name) {
+                if (is_uploaded_file($tmp_name)) {
+                    $name = basename($_FILES['ilanResimler']['name'][$key]);
+                    $upload_path = "$uploads_dir/$name";
 
-    // İlan detaylarını t_ilandetay tablosuna kaydet
-    $detaySorgu = $baglan->prepare("INSERT INTO t_ilandetay (ilanDilanID, ilanDFiyat, ilanDmetreKareBrut, ilanDmetreKareNet, ilanDOdaSayisi, ilanDBinaYasi, ilanDSiteIcerisindeMi, ilanDMulkTipiID, ilanDMulkTuru, ilanDKonumBilgisi, ilanDIsıtmaTipi, ilanDBulunduguKatSayisi, ilanDBinaKatSayisi, ilanDIlanTurID, ilanDAciklama) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    $detaySorgu->bind_param("idddiisisssiiis", $ilanID, $ilanDFiyat, $ilanDmetreKareBrut, $ilanDmetreKareNet, $ilanDOdaSayisi, $ilanDBinaYasi, $ilanDSiteIcerisindeMi, $mulkTipiID, $mulkTipiBaslik, $ilanDKonumBilgisi, $ilanDIsıtmaTipi, $ilanDBulunduguKatSayisi, $ilanDBinaKatSayisi, $ilanTurID, $ilanDAciklama);
-    $detaySorgu->execute();
-
-    // Resimleri yükle ve t_resimler tablosuna kaydet
-    if (isset($_FILES['ilanResimler']) && count($_FILES['ilanResimler']['tmp_name']) > 0) {
-        $uploads_dir = "uploads";
-        if (!is_dir($uploads_dir)) {
-            mkdir($uploads_dir, 0777, true); // Klasör yoksa oluştur
-        }
-
-        $resimler = array();
-        foreach ($_FILES['ilanResimler']['tmp_name'] as $key => $tmp_name) {
-            if (is_uploaded_file($tmp_name)) {
-                $name = basename($_FILES['ilanResimler']['name'][$key]);
-                $upload_path = "$uploads_dir/$name";
-
-                if (move_uploaded_file($tmp_name, $upload_path)) {
-                    $resimYolu = "../$upload_path";
-
-                    // Resmin daha önce eklenip eklenmediğini kontrol et
-                    $sorgu = $baglan->prepare("SELECT resimID FROM t_resimler WHERE resimUrl = ?");
-                    $sorgu->bind_param("s", $resimYolu);
-                    $sorgu->execute();
-                    $sorgu->store_result();
-
-                    if ($sorgu->num_rows > 0) {
-                        $sorgu->bind_result($resimID);
-                        $sorgu->fetch();
-                    } else {
-                        // Resim ekleniyor
+                    if (move_uploaded_file($tmp_name, $upload_path)) {
+                        $resimYolu = "../$upload_path";
                         $resimDurum = 1; // Varsayılan olarak aktif
-                        $resimBaslik = $ilanDAciklama; // Resim başlığı olarak ilan açıklaması kullanılıyor
-                        $resimSorgu = $baglan->prepare("INSERT INTO t_resimler (resimBaslik, resimDurum, resimEklenmeTarihi, resimGuncellenmeTarihi, resimIlanID, resimSilinmeTarihi, resimUrl) VALUES (?, ?, NOW(), NOW(), ?, NULL, ?)");
-                        $resimSorgu->bind_param("siis", $resimBaslik, $resimDurum, $ilanID, $resimYolu);
-                        $resimSorgu->execute();
-                        $resimID = $baglan->insert_id;
-                    }
+                        $resimBaslik = $ilanAciklama; // Resim başlığı olarak ilan açıklaması kullanılıyor
 
-                    $resimler[] = $resimID;
+                        $stmt = $baglan->prepare("INSERT INTO t_resimler (resimIlanID, resimBaslik, resimUrl, resimDurum, resimEklenmeTarihi, resimGuncellenmeTarihi, resimSilinmeTarihi) VALUES (?, ?, ?, ?, NOW(), NOW(), NULL)");
+                        $stmt->bind_param("issi", $ilanID, $resimBaslik, $resimYolu, $resimDurum);
+                        $stmt->execute();
+                    }
                 }
             }
         }
 
-        if (!empty($resimler)) {
-            // İlk resmi kullanabilir veya diğer işlemler için resim ID'lerini kullanabilirsiniz
-            echo "Resimler başarıyla yüklendi ve kaydedildi.";
-        } else {
-            echo "Resim yüklenirken bir hata oluştu.";
-        }
+        // İşlemleri tamamla
+        $baglan->commit();
+        $_SESSION['basarili'] = "İlan başarıyla eklendi.";
+        header("Location: ilanDetay.php?id=" . $ilanID);
+        exit();
+    } catch (Exception $e) {
+        $baglan->rollback();
+        die("Hata: " . $e->getMessage());
     }
 
-    // Başarılı mesajı ve yönlendirme
-    $_SESSION['basarili'] = "İlan başarıyla eklendi.";
-    header("Location: ilanDetay.php?id=" . $ilanID);
-    exit();
+    // Bağlantıyı kapat
+    $stmt->close();
+    $baglan->close();
 }
 ?>
 
@@ -239,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="d-flex gap-3">
                 <div class="mb-3">
-                    <input type="text" class="form-control" placeholder="Isıtma Tipi" id="ilanIsitmaTipi" name="ilanIsitmaTipi" required>
+                    <input type="text" class="form-control" placeholder="Isitma Tipi" id="ilanIsitmaTipi" name="ilanIsitmaTipi" required>
                 </div>
                 <div class="mb-3">
                     <input type="number" class="form-control" placeholder="Bulunduğu Kat" id="ilanBulunduguKat" name="ilanBulunduguKat" required>

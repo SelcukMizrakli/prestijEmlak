@@ -60,7 +60,7 @@ if ($loggedIn) {
   $sql = "SELECT 
             i.istatistikGoruntulenmeSayisi,
             il.ilanID,
-            id.ilanDAciklama,
+            id.ilanDAciklama AS ilanBaslik, -- Başlık olarak ilanDAciklama kullanılıyor
             id.ilanDFiyat,
             (SELECT r.resimUrl FROM t_resimler r WHERE r.resimIlanID = il.ilanID LIMIT 1) AS resimYolu
           FROM t_istatistik i
@@ -75,12 +75,19 @@ if ($loggedIn) {
     echo '<div class="listings">';
     echo '<div class="listing-grid">';
     while ($row = $result->fetch_assoc()) {
-      echo '<a href="ilanDetay.php?id=' . htmlspecialchars($row['ilanID']) . '" style="text-decoration: none; color: inherit;">';
+      $ilanID = $row['ilanID'];
+      $resimYolu = $row['resimYolu'] ?? 'https://via.placeholder.com/300x200'; // Varsayılan resim
+      $ilanBaslik = $row['ilanBaslik'] ?? 'Başlık bulunamadı'; // Varsayılan başlık
+      $ilanAciklama = $row['ilanDAciklama'] ?? 'Açıklama bulunamadı'; // Varsayılan açıklama
+      $ilanFiyat = $row['ilanDFiyat'] ?? 'Fiyat belirtilmemiş'; // Varsayılan fiyat
+
+      echo '<a href="ilanDetay.php?id=' . htmlspecialchars($ilanID) . '" style="text-decoration: none; color: inherit;">';
       echo '<div class="listing-card">';
-      echo '<img src="' . htmlspecialchars($row['resimYolu']) . '"';
+      echo '<img src="' . htmlspecialchars($resimYolu) . '" alt="İlan Resmi">';
       echo '<div class="card-content">';
-      echo '<p>' . htmlspecialchars($row['ilanDAciklama']) . '</p>';
-      echo '<p><strong>Fiyat:</strong> ' . htmlspecialchars($row['ilanDFiyat']) . ' TL</p>';
+      echo '<h3>' . htmlspecialchars($ilanBaslik) . '</h3>';
+      echo '<p>' . htmlspecialchars($ilanAciklama) . '</p>';
+      echo '<p><strong>Fiyat:</strong> ' . htmlspecialchars($ilanFiyat) . ' TL</p>';
       echo '</div>';
       echo '</div>';
       echo '</a>';

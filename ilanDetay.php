@@ -19,6 +19,8 @@ if (isset($_GET['id'])) {
 
 // İlan bilgilerini al
 $sorgu = $baglan->prepare("SELECT 
+                            uye.uyeSoyad,
+                            uye.uyeTelNo,
                             id.ilanDAciklama,
                             id.ilanDFiyat,
                             id.ilanDmetreKareBrut,
@@ -28,12 +30,25 @@ $sorgu = $baglan->prepare("SELECT
                             id.ilanDSiteIcerisindeMi,
                             id.ilanDMulkTuru,
                             id.ilanDKonumBilgisi,
-                            id.ilanDIsıtmaTipi,
+                            id.ilanDIsitmaTipi,
                             id.ilanDBulunduguKatSayisi,
                             id.ilanDBinaKatSayisi,
+                            id.ilanDIlanTurID,
+                            mt.mulkTipiBaslik,
+                            it.ilanTurAdi,
+                            a.adresBaslik,
+                            a.adresMahalle,
+                            a.adresIlce,
+                            a.adresSehir,
+                            a.adresUlke,
+                            a.adresPostaKodu,
                             GROUP_CONCAT(r.resimUrl) as resimler
                           FROM t_ilandetay id
                           JOIN t_ilanlar il ON id.ilanDilanID = il.ilanID
+                          JOIN t_mulktipi mt ON id.ilanDMulkTipiID = mt.mulkTipID
+                          JOIN t_ilantur it ON id.ilanDIlanTurID = it.ilanTurID
+                          JOIN t_adresler a ON il.ilanAdresID = a.adresID
+                            JOIN t_uyeler uye ON il.ilanUyeID = uye.uyeID
                           LEFT JOIN t_resimler r ON il.ilanID = r.resimIlanID
                           WHERE il.ilanID = ?
                           GROUP BY il.ilanID");
@@ -43,13 +58,35 @@ $result = $sorgu->get_result();
 $ilan = $result->fetch_object();
 
 if (!$ilan) {
-    // Eğer ilan bulunamazsa, ana sayfaya yönlendir
-    header("Location: index.php");
+    echo "İlan bulunamadı.";
     exit;
 }
 
+// Varsayılan değerler
+$fiyat = $ilan->ilanDFiyat ?? 0;
+$metreKareBrut = $ilan->ilanDmetreKareBrut ?? 'Belirtilmemiş';
+$metreKareNet = $ilan->ilanDmetreKareNet ?? 'Belirtilmemiş';
+$odaSayisi = $ilan->ilanDOdaSayisi ?? 'Belirtilmemiş';
+$binaYasi = $ilan->ilanDBinaYasi ?? 'Belirtilmemiş';
+$siteIcerisindeMi = $ilan->ilanDSiteIcerisindeMi ? 'Evet' : 'Hayır';
+$mulkTipi = $ilan->mulkTipiBaslik ?? 'Belirtilmemiş';
+$ilanTuru = $ilan->ilanTurAdi ?? 'Belirtilmemiş';
+$konum = $ilan->ilanDKonumBilgisi ?? 'Belirtilmemiş';
+$isitmaTipi = $ilan->ilanDIsitmaTipi ?? 'Belirtilmemiş';
+$bulunduguKat = $ilan->ilanDBulunduguKatSayisi ?? 'Belirtilmemiş';
+$binaKatSayisi = $ilan->ilanDBinaKatSayisi ?? 'Belirtilmemiş';
+$adresBaslik = $ilan->adresBaslik ?? 'Belirtilmemiş';
+$adresMahalle = $ilan->adresMahalle ?? 'Belirtilmemiş';
+$adresIlce = $ilan->adresIlce ?? 'Belirtilmemiş';
+$adresSehir = $ilan->adresSehir ?? 'Belirtilmemiş';
+$adresUlke = $ilan->adresUlke ?? 'Belirtilmemiş';
+$adresPostaKodu = $ilan->adresPostaKodu ?? 'Belirtilmemiş';
+$kullaniciSoyadi = $ilan->uyeSoyad ?? 'Belirtilmemiş';
+$kullaniciTelefon = $ilan->uyeTelNo ?? 'Belirtilmemiş';
+$ilanAciklama = $ilan->ilanDAciklama ?? 'Açıklama bulunamadı';
 // Resimleri ayır
 $resimler = isset($ilan->resimler) && $ilan->resimler !== null ? explode(',', $ilan->resimler) : [];
+
 ?>
 
 <!doctype html>
@@ -61,240 +98,6 @@ $resimler = isset($ilan->resimler) && $ilan->resimler !== null ? explode(',', $i
     <title>Prestij Emlak - İlan Detay</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="style.css" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            background-color: #f9f9f9;
-            color: #333;
-        }
-
-        header {
-            background-color: #004080;
-            color: #fff;
-            padding: 15px 20px;
-        }
-
-        header .container {
-            max-width: 1200px;
-            margin: auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        header .logo {
-            font-size: 1.8em;
-            font-weight: bold;
-        }
-
-        nav ul {
-            list-style: none;
-            display: flex;
-        }
-
-        nav ul li {
-            margin-left: 20px;
-        }
-
-        nav ul li a {
-            color: #fff;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .search-section {
-            background: url('https://via.placeholder.com/1200x400') no-repeat center/cover;
-            padding: 60px 20px;
-            text-align: center;
-            color: #fff;
-            position: relative;
-        }
-
-        .search-section::after {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.4);
-        }
-
-        .search-section .search-container {
-            position: relative;
-            z-index: 1;
-            max-width: 800px;
-            margin: auto;
-        }
-
-        .search-section h1 {
-            font-size: 2.5em;
-            margin-bottom: 20px;
-        }
-
-        .search-form {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .search-form input,
-        .search-form select {
-            padding: 10px;
-            margin: 5px;
-            border: none;
-            border-radius: 4px;
-            min-width: 150px;
-        }
-
-        .search-form button {
-            padding: 10px 20px;
-            margin: 5px;
-            border: none;
-            border-radius: 4px;
-            background-color: #ff6600;
-            color: #fff;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .listings {
-            max-width: 1200px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
-
-        .listing-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-        }
-
-        .listing-card {
-            background-color: #fff;
-            border-radius: 4px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .listing-card img {
-            width: 100%;
-            height: 180px;
-            object-fit: cover;
-        }
-
-        .listing-card .card-content {
-            padding: 15px;
-        }
-
-        .listing-card .card-content h3 {
-            margin-bottom: 10px;
-            font-size: 1.2em;
-            color: #004080;
-        }
-
-        .listing-card .card-content p {
-            font-size: 0.9em;
-            color: #555;
-        }
-
-        footer {
-            background-color: #333;
-            color: #ccc;
-            padding: 20px;
-            text-align: center;
-        }
-
-        @media (max-width: 768px) {
-            header .container {
-                flex-direction: column;
-            }
-
-            nav ul {
-                flex-direction: column;
-                margin-top: 10px;
-            }
-
-            nav ul li {
-                margin: 5px 0;
-            }
-        }
-
-        .image-container {
-            position: relative;
-            text-align: center;
-            max-width: 720px;
-            margin: auto;
-        }
-
-        .large-image {
-            width: 100%;
-            height: 400px;
-            object-fit: contain;
-            transition: transform 0.2s;
-        }
-
-        .nav-button {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background-color: rgba(0, 0, 0, 0.5);
-            color: white;
-            border: none;
-            padding: 10px;
-            cursor: pointer;
-            z-index: 10;
-        }
-
-        .nav-button.left {
-            left: 10px;
-        }
-
-        .nav-button.right {
-            right: 10px;
-        }
-
-        .thumbnail-container {
-            display: flex;
-            justify-content: center;
-            margin-top: 10px;
-        }
-
-        .thumbnail {
-            width: 100px;
-            height: 80px;
-            margin: 0 5px;
-            cursor: pointer;
-            opacity: 0.6;
-        }
-
-        .thumbnail:hover {
-            opacity: 1;
-        }
-
-        .details-container {
-            max-width: 720px;
-            margin: auto;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .details-container h2 {
-            margin-bottom: 20px;
-        }
-
-        .details-container p {
-            margin-bottom: 10px;
-        }
-    </style>
 </head>
 
 <body>
@@ -311,19 +114,63 @@ $resimler = isset($ilan->resimler) && $ilan->resimler !== null ? explode(',', $i
             <?php endforeach; ?>
         </div>
         <div class="details-container mt-4">
-            <h2>İlan Detayları</h2>
-            <p><strong>Fiyat:</strong> <?php echo number_format($ilan->ilanDFiyat, 2); ?> TL</p>
-            <p><strong>Metrekare (Brüt):</strong> <?php echo $ilan->ilanDmetreKareBrut; ?> m²</p>
-            <p><strong>Metrekare (Net):</strong> <?php echo $ilan->ilanDmetreKareNet; ?> m²</p>
-            <p><strong>Oda Sayısı:</strong> <?php echo $ilan->ilanDOdaSayisi; ?></p>
-            <p><strong>Bina Yaşı:</strong> <?php echo $ilan->ilanDBinaYasi; ?></p>
-            <p><strong>Site İçerisinde Mi:</strong> <?php echo $ilan->ilanDSiteIcerisindeMi ? 'Evet' : 'Hayır'; ?></p>
-            <p><strong>Mülk Türü:</strong> <?php echo $ilan->ilanDMulkTuru; ?></p>
-            <p><strong>Konum:</strong> <?php echo $ilan->ilanDKonumBilgisi; ?></p>
-            <p><strong>Isıtma Tipi:</strong> <?php echo $ilan->ilanDIsıtmaTipi; ?></p>
-            <p><strong>Bulunduğu Kat:</strong> <?php echo $ilan->ilanDBulunduguKatSayisi; ?></p>
-            <p><strong>Bina Kat Sayısı:</strong> <?php echo $ilan->ilanDBinaKatSayisi; ?></p>
+            <div class="row">
+                <div class="col-md-6 ">
+                    <h3>İlan Bilgileri</h3>
+                    <ul class="list-group">
+                        <li class="list-group-item"><strong>Fiyat:</strong> <?php echo number_format($fiyat, 2); ?> TL</li>
+                        <li class="list-group-item"><strong>Metrekare (Brüt):</strong> <?php echo $metreKareBrut; ?> m²</li>
+                        <li class="list-group-item"><strong>Metrekare (Net):</strong> <?php echo $metreKareNet; ?> m²</li>
+                        <li class="list-group-item"><strong>Oda Sayısı:</strong> <?php echo $odaSayisi; ?></li>
+                        <li class="list-group-item"><strong>Bina Yaşı:</strong> <?php echo $binaYasi; ?></li>
+                        <li class="list-group-item"><strong>Site İçerisinde Mi:</strong> <?php echo $siteIcerisindeMi; ?></li>
+                        <li class="list-group-item"><strong>Mülk Türü:</strong> <?php echo $mulkTipi; ?></li>
+                        <li class="list-group-item"><strong>İlan Türü:</strong> <?php echo $ilanTuru; ?></li>
+                        <li class="list-group-item"><strong>Konum:</strong> <?php echo $konum; ?></li>
+                        <li class="list-group-item"><strong>Isıtma Tipi:</strong> <?php echo $isitmaTipi; ?></li>
+                        <li class="list-group-item"><strong>Bulunduğu Kat:</strong> <?php echo $bulunduguKat; ?></li>
+                        <li class="list-group-item"><strong>Bina Kat Sayısı:</strong> <?php echo $binaKatSayisi; ?></li>
+                        <li class="list-group-item"><strong>Açıklama:</strong> <?php echo $ilanAciklama; ?></li>
+                    </ul>
+                </div>
+                <div class="col-md-6 ">
+                    <h3>İlan Veren Bilgileri</h3>
+                    <ul class="list-group">
+                        <li class="list-group-item"><strong>Ad Soyad:</strong> <?php echo htmlspecialchars($kullaniciAdi ?? 'Belirtilmemiş');
+                                                                                echo htmlspecialchars(" " . $kullaniciSoyadi ?? 'Belirtilmemiş'); ?></li>
+                        <li class="list-group-item"><strong>Telefon:</strong> <?php echo htmlspecialchars($kullaniciTelefon ?? 'Belirtilmemiş'); ?></li>
+                    </ul> <br><br>
+                    <h3>Adres Bilgileri</h3>
+                    <ul class="list-group">
+                        <li class="list-group-item">
+                            <strong>Mahalle:</strong> <?php echo $adresMahalle; ?><br>
+                            <strong>İlçe:</strong> <?php echo $adresIlce; ?><br>
+                            <strong>Şehir:</strong> <?php echo $adresSehir; ?>
+                        </li>
+                        <li class="list-group-item"><strong>Ülke:</strong> <?php echo $adresUlke; ?></li>
+                        <li class="list-group-item"><strong>Posta Kodu:</strong> <?php echo $adresPostaKodu; ?></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="map-container ">
+                <br><h2 style="margin-left: 33%;">Konum Bilgisi</h2>
+                <?php
+                $fullAddress = trim($adresMahalle . ', ' . $adresIlce . ', ' . $adresSehir);
+                if (!empty($fullAddress)): ?>
+                    <iframe
+                        src="https://www.google.com/maps?q=<?php echo urlencode($fullAddress); ?>&output=embed"
+                        width="50%"
+                        height="300"
+                        style="border:0; margin-left: 25%;"
+                        allowfullscreen=""
+                        loading="lazy">
+                    </iframe>
+                <?php else: ?>
+                    <p>Adres bilgisi mevcut değil.</p>
+                <?php endif; ?>
+            </div>
         </div>
+
     </div>
     <!-- Footer -->
     <footer>
