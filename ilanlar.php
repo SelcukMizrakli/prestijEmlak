@@ -1,5 +1,6 @@
 <?php
 session_start();
+include("ayar.php"); // Veritabanı bağlantısını dahil et
 ?>
 <!DOCTYPE html>
 <html lang="tr">
@@ -19,7 +20,7 @@ session_start();
   <section class="search-section">
     <div class="search-container">
       <h1>Tüm İlanlar</h1>
-      <form class="search-form">
+      <form class="search-form" method="GET" action="ilanlar.php">
         <select name="il">
           <option value="">İl Seçiniz</option>
           <option value="istanbul">İstanbul</option>
@@ -39,47 +40,71 @@ session_start();
       </form>
     </div>
   </section>
+
   <div class="container mt-5">
     <!-- İlanlar Bölümü -->
     <div class="listings mt-5">
       <div class="listing-grid">
-        <!-- Statik İlan 1 -->
-        <a href="#" style="text-decoration: none; color: inherit;">
-          <div class="listing-card">
-            <img src="https://via.placeholder.com/300x200" alt="İlan Resmi">
-            <div class="card-content">
-              <h3>Satılık Daire</h3>
-              <p>3+1, 120 m², İstanbul</p>
-              <p><strong>Fiyat:</strong> 1,500,000 TL</p>
-            </div>
-          </div>
-        </a>
-        <!-- Statik İlan 2 -->
-        <a href="#" style="text-decoration: none; color: inherit;">
-          <div class="listing-card">
-            <img src="https://via.placeholder.com/300x200" alt="İlan Resmi">
-            <div class="card-content">
-              <h3>Kiralık Daire</h3>
-              <p>2+1, 90 m², Ankara</p>
-              <p><strong>Fiyat:</strong> 5,000 TL</p>
-            </div>
-          </div>
-        </a>
-        <!-- Statik İlan 3 -->
-        <a href="#" style="text-decoration: none; color: inherit;">
-          <div class="listing-card">
-            <img src="https://via.placeholder.com/300x200" alt="İlan Resmi">
-            <div class="card-content">
-              <h3>Satılık Villa</h3>
-              <p>5+2, 300 m², İzmir</p>
-              <p><strong>Fiyat:</strong> 7,500,000 TL</p>
-            </div>
-          </div>
-        </a>
-        <!-- Daha fazla statik ilan eklenebilir -->
+        <?php
+        // Veritabanından ilanları çek
+        $query = "
+          SELECT 
+            il.ilanID,
+            il.ilanDurum,
+            id.ilanDAciklama,
+            id.ilanDFiyat,
+            id.ilanDmetreKareBrut,
+            id.ilanDOdaSayisi,
+            id.ilanDKonumBilgisi,
+            id.ilanDMulkTuru,
+            a.adresSehir,
+            a.adresIlce,
+            r.resimUrl
+          FROM t_ilanlar il
+          JOIN t_ilandetay id ON il.ilanID = id.ilanDilanID
+          JOIN t_adresler a ON il.ilanAdresID = a.adresID
+          LEFT JOIN t_resimler r ON il.ilanID = r.resimIlanID AND r.resimDurum = 1
+          WHERE il.ilanDurum = 1
+          GROUP BY il.ilanID
+        ";
+        $result = $baglan->query($query);
+
+        if ($result->num_rows > 0) {
+          while ($row = $result->fetch_assoc()) {
+            // İlan bilgilerini değişkenlere ata
+            $ilanID = $row['ilanID'];
+            $ilanAciklama = htmlspecialchars($row['ilanDAciklama']);
+            $ilanFiyat = number_format($row['ilanDFiyat'], 2);
+            $ilanMetrekare = htmlspecialchars($row['ilanDmetreKareBrut']);
+            $ilanOdaSayisi = htmlspecialchars($row['ilanDOdaSayisi']);
+            $ilanKonum = htmlspecialchars($row['ilanDKonumBilgisi']);
+            $ilanMulkTuru = htmlspecialchars($row['ilanDMulkTuru']);
+            $ilanSehir = htmlspecialchars($row['adresSehir']);
+            $ilanIlce = htmlspecialchars($row['adresIlce']);
+            $ilanResim = $row['resimUrl'] ?: 'default.jpg'; // Resim yoksa varsayılan resim
+        ?>
+            <!-- Dinamik İlan Kartı -->
+            <a href="ilanDetay.php?id=<?php echo $ilanID; ?>" style="text-decoration: none; color: inherit;">
+              <div class="listing-card">
+                <img src="<?php echo $ilanResim; ?>" alt="İlan Resmi">
+                <div class="card-content">
+                  <h3><?php echo $ilanMulkTuru; ?></h3>
+                  <p><?php echo $ilanOdaSayisi; ?> Oda, <?php echo $ilanMetrekare; ?> m²</p>
+                  <p><?php echo $ilanSehir; ?> / <?php echo $ilanIlce; ?></p>
+                  <p><strong>Fiyat:</strong> <?php echo $ilanFiyat; ?> TL</p>
+                </div>
+              </div>
+            </a>
+        <?php
+          }
+        } else {
+          echo "<p>Henüz ilan bulunmamaktadır.</p>";
+        }
+        ?>
       </div>
     </div>
   </div>
+
   <footer>
     <p>&copy; 2025 Prestij Emlak. Tüm hakları saklıdır.</p>
     <p><a href="#" style="color: #ff6600; text-decoration: none;">İletişim</a> | <a href="#" style="color: #ff6600; text-decoration: none;">Gizlilik Politikası</a></p>

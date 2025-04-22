@@ -270,3 +270,63 @@ footer a:hover {
 .details-container p {
   margin-bottom: 10px;
 }
+
+/* Dropdown Menü Stilleri */
+.dropdown {
+  position: relative;
+}
+
+.dropdown-toggle {
+  background-color: #004080;
+  color: #fff;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.dropdown-toggle:hover {
+  background-color: #003366;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  padding: 10px 0;
+  z-index: 1000;
+  display: none; /* Varsayılan olarak gizli */
+}
+
+.dropdown:hover .dropdown-menu {
+  display: block; /* Hover sırasında görünür */
+}
+
+.dropdown-menu .dropdown-item {
+  padding: 10px 15px;
+  color: #333;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dropdown-menu .dropdown-item:hover {
+  background-color: #f8f9fa;
+  color: #004080;
+}
+
+.dropdown-menu .dropdown-item.text-danger {
+  color: #dc3545;
+}
+
+.dropdown-menu .dropdown-item.text-danger:hover {
+  background-color: #f8d7da;
+  color: #a71d2a;
+}

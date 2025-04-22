@@ -1,5 +1,17 @@
 <?php
-/* Üye giriş kontrolü yapılacak*/
+session_start();
+include("ayar.php"); // Veritabanı bağlantısını dahil et
+
+// Kullanıcı giriş kontrolü
+if (!isset($_SESSION['giris']) || !$_SESSION['giris']) {
+    header("Location: girisYap.php"); // Giriş yapılmamışsa giriş sayfasına yönlendir
+    exit;
+}
+
+// Kullanıcı bilgilerini session'dan al
+$kullaniciID = $_SESSION['uyeID'];
+$kullaniciAdi = $_SESSION['uyeAd'];
+$kullaniciMail = $_SESSION['uyeMail'];
 ?>
 <!doctype html>
 <html lang="tr">
@@ -44,9 +56,8 @@
     <div class="container mt-5">
         <!-- Kullanıcı Bilgileri -->
         <div class="profile-header text-center">
-            <h2>Kullanıcı Adı</h2>
-            <p>E-posta: kullanici@example.com</p>
-            <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#editProfileModal">Profili Düzenle</button>
+            <h2><?php echo htmlspecialchars($kullaniciAdi); ?></h2>
+            <p>E-posta: <?php echo htmlspecialchars($kullaniciMail); ?></p>
         </div>
 
         <!-- Sekmeler -->
@@ -70,110 +81,103 @@
             <!-- İlanlarım -->
             <div class="tab-pane fade show active" id="ilanlar" role="tabpanel">
                 <div class="row">
-                    <div class="col-md-4">
-                        <div class="card">
-                            <img src="https://via.placeholder.com/300x150" class="card-img-top" alt="İlan Resmi">
-                            <div class="card-body">
-                                <h5 class="card-title">İlan Başlığı</h5>
-                                <p class="card-text">Açıklama: Kısa açıklama burada yer alır.</p>
-                                <p class="card-text"><strong>Fiyat:</strong> 500,000 TL</p>
-                                <a href="ilanDetay.php?id=1" class="btn btn-primary btn-sm">Detaylar</a>
-                                <!-- İlan Düzenle Butonu -->
-                                <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editIlanModal" onclick="loadIlanData(1, 'İlan Başlığı', 'Kısa açıklama burada yer alır.', 500000)">Düzenle</button>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Diğer ilanlar burada listelenebilir -->
+                    <?php
+                    $query = $baglan->prepare("
+                        SELECT il.ilanID, id.ilanDFiyat, id.ilanDMulkTuru, id.ilanDKonumBilgisi
+                        FROM t_ilanlar il
+                        JOIN t_ilandetay id ON il.ilanID = id.ilanDilanID
+                        WHERE il.ilanUyeID = ?
+                    ");
+                    $query->bind_param("i", $kullaniciID);
+                    $query->execute();
+                    $result = $query->get_result();
+
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            echo '
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">' . htmlspecialchars($row['ilanDMulkTuru']) . '</h5>
+                                            <p class="card-text"><strong>Fiyat:</strong> ' . number_format($row['ilanDFiyat'], 2) . ' TL</p>
+                                            <p class="card-text"><strong>Konum:</strong> ' . htmlspecialchars($row['ilanDKonumBilgisi']) . '</p>
+                                            <a href="ilanDuzenle.php?id=' . $row['ilanID'] . '" class="btn btn-warning btn-sm">Düzenle</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            ';
+                        }
+                    } else {
+                        echo "<p>Henüz ilanınız bulunmamaktadır.</p>";
+                    }
+                    ?>
                 </div>
             </div>
 
             <!-- Favorilerim -->
             <div class="tab-pane fade" id="favoriler" role="tabpanel">
                 <div class="row">
-                    <div class="col-md-4">
-                        <div class="card">
-                            <img src="https://via.placeholder.com/300x150" class="card-img-top" alt="Favori İlan Resmi">
-                            <div class="card-body">
-                                <h5 class="card-title">Favori İlan Başlığı</h5>
-                                <p class="card-text">Açıklama: Kısa açıklama burada yer alır.</p>
-                                <p class="card-text"><strong>Fiyat:</strong> 750,000 TL</p>
-                                <a href="ilanDetay.php?id=2" class="btn btn-primary btn-sm">Detaylar</a>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Diğer favori ilanlar burada listelenebilir -->
+                    <?php
+                    $query = $baglan->prepare("
+                        SELECT id.ilanDFiyat, id.ilanDMulkTuru, id.ilanDKonumBilgisi
+                        FROM t_favoriler f
+                        JOIN t_ilandetay id ON f.favoriIlanID = id.ilanDilanID
+                        WHERE f.favoriUyeID = ?
+                    ");
+                    $query->bind_param("i", $kullaniciID);
+                    $query->execute();
+                    $result = $query->get_result();
+
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            echo '
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">' . htmlspecialchars($row['ilanDMulkTuru']) . '</h5>
+                                            <p class="card-text"><strong>Fiyat:</strong> ' . number_format($row['ilanDFiyat'], 2) . ' TL</p>
+                                            <p class="card-text"><strong>Konum:</strong> ' . htmlspecialchars($row['ilanDKonumBilgisi']) . '</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ';
+                        }
+                    } else {
+                        echo "<p>Henüz favori ilanınız bulunmamaktadır.</p>";
+                    }
+                    ?>
                 </div>
             </div>
 
             <!-- Mesajlar -->
             <div class="tab-pane fade" id="mesajlar" role="tabpanel">
                 <div class="message-list">
-                    <!-- Her bir konuşma için bir div -->
-                    <div class="message-summary border p-3 mb-2" onclick="toggleMessageBox('sohbet1')">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong>Kullanıcı Adı 1</strong>
-                            <small>12-04-2025 14:30</small>
-                        </div>
-                        <p>En son mesaj: Merhaba, ilan hakkında bilgi almak istiyorum.</p>
-                    </div>
-                    <div class="message-summary border p-3 mb-2" onclick="toggleMessageBox('sohbet2')">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong>Kullanıcı Adı 2</strong>
-                            <small>11-04-2025 16:45</small>
-                        </div>
-                        <p>En son mesaj: İlan hala geçerli mi?</p>
-                    </div>
-                    <!-- Diğer konuşmalar burada listelenebilir -->
-                </div>
+                    <?php
+                    $query = $baglan->prepare("
+                        SELECT m.mesajText, m.mesajOkunduDurumu, u.uyeMail
+                        FROM t_mesajlar m
+                        JOIN t_uyeler u ON m.mesajIletenID = u.uyeID
+                        WHERE m.mesajAlanID = ?
+                    ");
+                    $query->bind_param("i", $kullaniciID);
+                    $query->execute();
+                    $result = $query->get_result();
 
-                <!-- Siyah Opak Arka Plan -->
-                <div id="overlay" class="d-none" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1040;"></div>
-
-                <!-- Mesaj Kutuları -->
-                <div id="sohbet1" class="message-box d-none border p-3 mt-3" style="height: 50vh; width: 60%; overflow-y: auto; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: white; z-index: 1050;">
-                    <button class="btn-close" style="position: absolute; top: 15px; right: 15px; z-index: 1060;" onclick="closeMessageBox()"></button>
-                    <div class="message-container">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong>Kullanıcı Adı 1</strong>
-                            <small>12-04-2025 14:30</small>
-                        </div>
-                        <p>Merhaba, ilan hakkında bilgi almak istiyorum.</p>
-                        <hr>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong>Ben</strong>
-                            <small>12-04-2025 14:35</small>
-                        </div>
-                        <p>Merhaba, ilan hala geçerli.</p>
-                        <hr>
-                        <!-- Diğer mesajlar burada listelenebilir -->
-                    </div>
-                    <form class="mt-3" style="position: absolute; bottom: 10px; width: 98%;">
-                        <textarea class="form-control" rows="2" placeholder="Mesajınızı yazın..."></textarea>
-                        <button type="submit" class="btn btn-primary mt-2">Gönder</button>
-                    </form>
-                </div>
-
-                <div id="sohbet2" class="message-box d-none border p-3 mt-3" style="height: 50vh; width: 60%; overflow-y: auto; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: white; z-index: 1050;">
-                    <button class="btn-close" style="position: absolute; top: 15px; right: 15px; z-index: 1060;" onclick="closeMessageBox()"></button>
-                    <div class="message-container">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong>Kullanıcı Adı 2</strong>
-                            <small>11-04-2025 16:45</small>
-                        </div>
-                        <p>İlan hala geçerli mi?</p>
-                        <hr>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong>Ben</strong>
-                            <small>11-04-2025 16:50</small>
-                        </div>
-                        <p>Evet, ilan hala geçerli.</p>
-                        <hr>
-                        <!-- Diğer mesajlar burada listelenebilir -->
-                    </div>
-                    <form class="mt-3" style="position: absolute; bottom: 10px; width: 98%;">
-                        <textarea class="form-control" rows="2" placeholder="Mesajınızı yazın..."></textarea>
-                        <button type="submit" class="btn btn-primary mt-2">Gönder</button>
-                    </form>
+                    if ($result->num_rows > 0) {
+                        while ($row = $result->fetch_assoc()) {
+                            $okunduDurumu = $row['mesajOkunduDurumu'] == 1 ? "Görüldü" : "Görülmedi";
+                            echo '
+                                <div class="message-summary border p-3 mb-2">
+                                    <strong>' . htmlspecialchars($row['uyeMail']) . '</strong>
+                                    <p>' . htmlspecialchars($row['mesajText']) . '</p>
+                                    <small>' . $okunduDurumu . '</small>
+                                </div>
+                            ';
+                        }
+                    } else {
+                        echo "<p>Henüz mesajınız bulunmamaktadır.</p>";
+                    }
+                    ?>
                 </div>
             </div>
 
@@ -182,173 +186,32 @@
                 <div class="container mt-3">
                     <h4>Üye Listesi</h4>
                     <div class="message-list">
-                        <!-- Üye Bilgileri -->
-                        <div class="message-summary border p-3 mb-2" onclick="loadUyeIlanlari(1, 'Kullanıcı Adı 1', 'kullanici1@example.com', 'Admin')">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <strong>Kullanıcı Adı 1</strong>
-                                <small>kullanici1@example.com</small>
-                            </div>
-                            <p>Üye Yetkisi: Admin</p>
-                        </div>
-                        <div class="message-summary border p-3 mb-2" onclick="loadUyeIlanlari(2, 'Kullanıcı Adı 2', 'kullanici2@example.com', 'Kullanıcı')">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <strong>Kullanıcı Adı 2</strong>
-                                <small>kullanici2@example.com</small>
-                            </div>
-                            <p>Üye Yetkisi: Kullanıcı</p>
-                        </div>
-                        <!-- Diğer üyeler burada listelenebilir -->
-                    </div>
-                </div>
+                        <?php
+                        $query = $baglan->query("
+                            SELECT u.uyeID, u.uyeMail, u.uyeTelNo, u.uyeYetkiID, y.yetkiAdi
+                            FROM t_uyeler u
+                            JOIN t_yetki y ON u.uyeYetkiID = y.yetkiID
+                            WHERE u.uyeAktiflikDurumu = 1
+                        ");
 
-                <!-- Üye İlanları ve Yetki Düzenleme Modal -->
-                <div class="modal fade" id="uyeIlanlariModal" tabindex="-1" aria-labelledby="uyeIlanlariModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="uyeIlanlariModalLabel">Üye Bilgileri ve İlanları</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
-                            </div>
-                            <div class="modal-body">
-                                <!-- Üye Bilgileri -->
-                                <h6 id="uyeAdi"></h6>
-                                <p id="uyeEmail"></p>
-                                <div class="mb-3">
-                                    <label for="uyeYetki" class="form-label">Yetki</label>
-                                    <select class="form-select" id="uyeYetki" name="uyeYetki" required>
-                                        <option value="Admin">Admin</option>
-                                        <option value="Kullanıcı">Kullanıcı</option>
-                                    </select>
-                                    <button class="btn btn-primary btn-sm mt-2" onclick="guncelleYetki()">Yetki Güncelle</button>
+                        while ($row = $query->fetch_assoc()) {
+                            echo '
+                                <div class="message-summary border p-3 mb-2">
+                                    <strong>' . htmlspecialchars($row['uyeMail']) . '</strong>
+                                    <p>Telefon: ' . htmlspecialchars($row['uyeTelNo']) . '</p>
+                                    <p>Yetki: ' . htmlspecialchars($row['yetkiAdi']) . '</p>
+                                    <a href="uyeSil.php?id=' . $row['uyeID'] . '" class="btn btn-danger btn-sm">Sil</a>
+                                    <a href="uyeYetkiDuzenle.php?id=' . $row['uyeID'] . '" class="btn btn-warning btn-sm">Yetki Düzenle</a>
                                 </div>
-
-                                <!-- Üye İlanları -->
-                                <h6>Üyenin İlanları</h6>
-                                <div id="uyeIlanlari" class="row">
-                                    <!-- Üyenin ilanları dinamik olarak buraya yüklenecek -->
-                                </div>
-                            </div>
-                        </div>
+                            ';
+                        }
+                        ?>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Profil Düzenleme Modal -->
-    <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editProfileModalLabel">Profili Düzenle</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
-                </div>
-                <div class="modal-body">
-                    <form>
-                        <div class="mb-3">
-                            <label for="username" class="form-label">Kullanıcı Adı</label>
-                            <input type="text" class="form-control" id="username" value="Kullanıcı Adı">
-                        </div>
-                        <div class="mb-3">
-                            <label for="email" class="form-label">E-posta</label>
-                            <input type="email" class="form-control" id="email" value="kullanici@example.com">
-                        </div>
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Şifre</label>
-                            <input type="password" class="form-control" id="password">
-                        </div>
-                        <div class="mb-3">
-                            <label for="phone" class="form-label">Tel. No</label>
-                            <input type="tel" class="form-control" id="phone" value="+90 ">
-                        </div>
-                        <button type="submit" class="btn btn-primary">Kaydet</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- İlan Düzenleme Modal -->
-    <div class="modal fade" id="editIlanModal" tabindex="-1" aria-labelledby="editIlanModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editIlanModalLabel">İlanı Düzenle</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="editIlanForm" enctype="multipart/form-data">
-                        <input type="hidden" id="ilanId" name="ilanId">
-
-                        <!-- Başlık -->
-                        <div class="mb-3">
-                            <label for="ilanBaslik" class="form-label">Başlık</label>
-                            <input type="text" class="form-control" id="ilanBaslik" name="ilanBaslik" required>
-                        </div>
-
-                        <!-- Açıklama -->
-                        <div class="mb-3">
-                            <label for="ilanAciklama" class="form-label">Açıklama</label>
-                            <textarea class="form-control" id="ilanAciklama" name="ilanAciklama" rows="3" required></textarea>
-                        </div>
-
-                        <!-- Fiyat -->
-                        <div class="mb-3">
-                            <label for="ilanFiyat" class="form-label">Fiyat</label>
-                            <input type="number" class="form-control" id="ilanFiyat" name="ilanFiyat" required>
-                        </div>
-
-                        <!-- Metrekare -->
-                        <div class="mb-3">
-                            <label for="ilanMetrekare" class="form-label">Metrekare</label>
-                            <input type="number" class="form-control" id="ilanMetrekare" name="ilanMetrekare" required>
-                        </div>
-
-                        <!-- Oda Sayısı -->
-                        <div class="mb-3">
-                            <label for="ilanOdaSayisi" class="form-label">Oda Sayısı</label>
-                            <input type="number" class="form-control" id="ilanOdaSayisi" name="ilanOdaSayisi" required>
-                        </div>
-
-                        <!-- Resim Ekleme -->
-                        <div class="mb-3">
-                            <label for="ilanResimler" class="form-label">Resimler</label>
-                            <input type="file" class="form-control" id="ilanResimler" name="ilanResimler[]" multiple accept="image/*">
-                            <small class="form-text text-muted">Birden fazla resim seçmek için Ctrl veya Shift tuşunu kullanabilirsiniz.</small>
-                        </div>
-
-                        <!-- Mevcut Resimler -->
-                        <div class="mb-3">
-                            <label class="form-label">Mevcut Resimler</label>
-                            <div id="mevcutResimler" class="d-flex flex-wrap">
-                                <!-- Resimler dinamik olarak buraya yüklenecek -->
-                            </div>
-                        </div>
-
-                        <!-- Konum -->
-                        <div class="mb-3">
-                            <label for="ilanKonum" class="form-label">Konum</label>
-                            <input type="text" class="form-control" id="ilanKonum" name="ilanKonum" required>
-                        </div>
-
-                        <!-- Isıtma Tipi -->
-                        <div class="mb-3">
-                            <label for="ilanIsitma" class="form-label">Isıtma Tipi</label>
-                            <select class="form-select" id="ilanIsitma" name="ilanIsitma" required>
-                                <option value="Merkezi">Merkezi</option>
-                                <option value="Doğalgaz">Doğalgaz</option>
-                                <option value="Soba">Soba</option>
-                                <option value="Yok">Yok</option>
-                            </select>
-                        </div>
-
-                        <!-- Submit Butonu -->
-                        <button type="submit" class="btn btn-primary">Kaydet</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
     <footer>
         <p>&copy; 2025 Prestij Emlak. Tüm hakları saklıdır.</p>
         <p><a href="#" style="color: #ff6600; text-decoration: none;">İletişim</a> | <a href="#" style="color: #ff6600; text-decoration: none;">Gizlilik Politikası</a></p>
@@ -537,6 +400,34 @@
                     console.error('Hata:', error);
                     alert('Bir hata oluştu.');
                 });
+        });
+    </script>
+    <script type="text/javascript">
+        document.addEventListener("DOMContentLoaded", function() {
+            // URL'den parametreleri al
+            const urlParams = new URLSearchParams(window.location.search);
+            const tab = urlParams.get('tab');
+
+            // Eğer "mesajlar" parametresi varsa, o sekmeyi aç
+            if (tab === "mesajlar") {
+                const tabButton = document.querySelector('button[data-bs-target="#mesajlar"]');
+                if (tabButton) {
+                    tabButton.click();
+                }
+            }
+        });
+        document.addEventListener("DOMContentLoaded", function() {
+            // URL'den parametreleri al
+            const urlParams = new URLSearchParams(window.location.search);
+            const tab = urlParams.get('tab');
+
+            // Eğer "mesajlar" parametresi varsa, o sekmeyi aç
+            if (tab === "favoriler") {
+                const tabButton = document.querySelector('button[data-bs-target="#favoriler"]');
+                if (tabButton) {
+                    tabButton.click();
+                }
+            }
         });
     </script>
 </body>
