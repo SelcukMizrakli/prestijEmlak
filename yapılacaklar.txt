@@ -1,4 +1,4 @@
-*Kullanıcıya özel profil oluşturulacak (yetkilere göre)
+*       Kullanıcıya özel profil oluşturulacak (yetkilere göre)
 
 *   ilanları silme ve düzenleme yetkisi kullanıcıya verilecek
 
@@ -10,9 +10,6 @@
 
 ** ilan detay sayfasına mesaj yazma özelliği eklenmeli (ilan veren kendisine mesaj gönderememeli)
 
-** ilan detay sayfasına ilan verenin telefon numarası da eklenmeli
-
-*** navbar'daki profil dropdown'una mesajlarım da eklenebilir
 
 
 
@@ -31,5 +28,8 @@
 
 // header guncellendi
 // ilanlar sayfasi duzenlendi
-// profil sayfasi veri tabanina gore sekillendiriliyor (bir kisim yapildi, kalan yapilacak)
+// profil sayfasi veri tabanina gore sekillendirildi
+
+** profil sayfasında profil düzenledikten sonra isim verisini tekrar çekerek header ve ekranın ortasındaki isimleri güncelle
+
 ** hakkimizda ve iletisim sayfalarini admin duzenleyebilmeli
