@@ -25,14 +25,3 @@
 // Profil hariç diğer sayfalar düzenlendi (footer için ayrı bir sayfa oluşturulabilir)
 // ilan ekleme sayfası yapılacak, ilanlar sayfasına veri tabanından ilanlar getirilecek
 // profil sayfası komple ayarlanacak (farklı başlıklara ayrılabilir)
-
-// header guncellendi
-// ilanlar sayfasi duzenlendi
-// profil sayfasi veri tabanina gore sekillendirildi
-
-** profil sayfasında profil düzenledikten sonra isim verisini tekrar çekerek header ve ekranın ortasındaki isimleri güncelle
-
-** hakkimizda ve iletisim sayfalarini admin duzenleyebilmeli
-
-
-ilan düzenleme eklenecek
