@@ -14,7 +14,7 @@ $kullaniciAdi = $_SESSION['uyeAd'];
 $kullaniciMail = $_SESSION['uyeMail'];
 
 // Kullanıcı bilgilerini veritabanından çek
-$query = $baglan->prepare("SELECT uyeAd, uyeSoyad, uyeTelNo, uyeAdresID FROM t_uyeler WHERE uyeID = ?");
+$query = $baglan->prepare("SELECT uyeAd, uyeSoyad, uyeTelNo, uyeAdresID, uyeYetkiID FROM t_uyeler WHERE uyeID = ?");
 $query->bind_param("i", $kullaniciID);
 $query->execute();
 $result = $query->get_result();
@@ -204,9 +204,11 @@ if (!$kullanici) {
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="mesajlar-tab" data-bs-toggle="tab" data-bs-target="#mesajlar" type="button" role="tab">Mesajlar</button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="yonetim-tab" data-bs-toggle="tab" data-bs-target="#yonetim" type="button" role="tab">Yönetim Paneli</button>
-            </li>
+            <?php if ($kullanici['uyeYetkiID'] == 1): ?>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="yonetim-tab" data-bs-toggle="tab" data-bs-target="#yonetim" type="button" role="tab">Yönetim Paneli</button>
+                </li>
+            <?php endif; ?>
         </ul>
 
         <!-- Sekme İçerikleri -->
@@ -320,168 +322,170 @@ if (!$kullanici) {
                 </div>
             </div>
 
-            <!-- Yönetim Paneli -->
-            <div class="tab-pane fade <?php echo isset($_GET['tab']) && $_GET['tab'] === 'yonetim' ? 'show active' : ''; ?>" id="yonetim" role="tabpanel">
-                <div class="container mt-3">
-                    <h4>Üye Listesi</h4>
-                    <form method="GET" class="mb-3">
-                        <input type="hidden" name="tab" value="yonetim"> <!-- Yönetim sekmesinde kalmak için -->
-                        <div class="row">
-                            <div class="col-md-3">
-                                <input type="text" name="isim" class="form-control" placeholder="İsim" value="<?php echo isset($_GET['isim']) ? htmlspecialchars($_GET['isim']) : ''; ?>">
+            <?php if ($kullanici['uyeYetkiID'] == 1): ?>
+                <!-- Yönetim Paneli -->
+                <div class="tab-pane fade <?php echo isset($_GET['tab']) && $_GET['tab'] === 'yonetim' ? 'show active' : ''; ?>" id="yonetim" role="tabpanel">
+                    <div class="container mt-3">
+                        <h4>Üye Listesi</h4>
+                        <form method="GET" class="mb-3">
+                            <input type="hidden" name="tab" value="yonetim"> <!-- Yönetim sekmesinde kalmak için -->
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <input type="text" name="isim" class="form-control" placeholder="İsim" value="<?php echo isset($_GET['isim']) ? htmlspecialchars($_GET['isim']) : ''; ?>">
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="text" name="mail" class="form-control" placeholder="E-posta" value="<?php echo isset($_GET['mail']) ? htmlspecialchars($_GET['mail']) : ''; ?>">
+                                </div>
+                                <div class="col-md-3">
+                                    <select name="yetki" class="form-control">
+                                        <option value="">Yetki Seç</option>
+                                        <option value="1" <?php echo isset($_GET['yetki']) && $_GET['yetki'] == 1 ? 'selected' : ''; ?>>Admin</option>
+                                        <option value="2" <?php echo isset($_GET['yetki']) && $_GET['yetki'] == 2 ? 'selected' : ''; ?>>Üye</option>
+                                        <option value="3" <?php echo isset($_GET['yetki']) && $_GET['yetki'] == 3 ? 'selected' : ''; ?>>Şirket</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <button type="submit" class="btn btn-primary">Filtrele</button>
+                                </div>
                             </div>
-                            <div class="col-md-3">
-                                <input type="text" name="mail" class="form-control" placeholder="E-posta" value="<?php echo isset($_GET['mail']) ? htmlspecialchars($_GET['mail']) : ''; ?>">
-                            </div>
-                            <div class="col-md-3">
-                                <select name="yetki" class="form-control">
-                                    <option value="">Yetki Seç</option>
-                                    <option value="1" <?php echo isset($_GET['yetki']) && $_GET['yetki'] == 1 ? 'selected' : ''; ?>>Admin</option>
-                                    <option value="2" <?php echo isset($_GET['yetki']) && $_GET['yetki'] == 2 ? 'selected' : ''; ?>>Üye</option>
-                                    <option value="3" <?php echo isset($_GET['yetki']) && $_GET['yetki'] == 3 ? 'selected' : ''; ?>>Şirket</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <button type="submit" class="btn btn-primary">Filtrele</button>
-                            </div>
+                        </form>
+                        <!-- Yönetim Paneli İçeriği -->
+                        <div class="message-list">
+                            <?php
+                            $queryStr = "
+                                SELECT u.uyeID, u.uyeMail, u.uyeTelNo, u.uyeYetkiID, y.yetkiAdi
+                                FROM t_uyeler u
+                                JOIN t_yetki y ON u.uyeYetkiID = y.yetkiID
+                                WHERE u.uyeAktiflikDurumu = 1
+                            ";
+
+                            // Filtreleme koşulları
+                            if (!empty($_GET['isim'])) {
+                                $queryStr .= " AND u.uyeAd LIKE '%" . $baglan->real_escape_string($_GET['isim']) . "%'";
+                            }
+                            if (!empty($_GET['mail'])) {
+                                $queryStr .= " AND u.uyeMail LIKE '%" . $baglan->real_escape_string($_GET['mail']) . "%'";
+                            }
+                            if (!empty($_GET['yetki'])) {
+                                $queryStr .= " AND u.uyeYetkiID = " . intval($_GET['yetki']);
+                            }
+
+                            $query = $baglan->query($queryStr);
+
+                            if ($query->num_rows > 0) {
+                                while ($row = $query->fetch_assoc()) {
+                                    echo '
+                                        <div class="message-summary border p-3 mb-2">
+                                            <strong>' . htmlspecialchars($row['uyeMail']) . '</strong>
+                                            <p>Telefon: ' . htmlspecialchars($row['uyeTelNo']) . '</p>
+                                            <p>Yetki: ' . htmlspecialchars($row['yetkiAdi']) . '</p>
+                                            <button class="btn btn-warning btn-sm" onclick="openYetkiModal(' . $row['uyeID'] . ', \'' . $row['uyeYetkiID'] . '\')">Yetki Düzenle</button>
+                                            <a href="kullaniciProfilDetay.php?id=' . $row['uyeID'] . '" class="btn btn-info btn-sm">Daha Fazla Görüntüle</a>
+                                        </div>
+                                    ';
+                                }
+                            } else {
+                                echo "<p>Filtreleme sonucunda üye bulunamadı.</p>";
+                            }
+                            ?>
                         </div>
-                    </form>
-                    <div class="message-list">
+
+                        <!-- Hakkımızda ve İletişim İçerik Yönetimi -->
+                        <hr>
+                        <h4>Sayfa İçerik Yönetimi</h4>
                         <?php
-                        $queryStr = "
-                            SELECT u.uyeID, u.uyeMail, u.uyeTelNo, u.uyeYetkiID, y.yetkiAdi
-                            FROM t_uyeler u
-                            JOIN t_yetki y ON u.uyeYetkiID = y.yetkiID
-                            WHERE u.uyeAktiflikDurumu = 1
-                        ";
+                        // Dosya yolları
+                        $hakkimizdaDosya = 'hakkimizda.php';
+                        $iletisimDosya = 'iletisim.php';
 
-                        // Filtreleme koşulları
-                        if (!empty($_GET['isim'])) {
-                            $queryStr .= " AND u.uyeAd LIKE '%" . $baglan->real_escape_string($_GET['isim']) . "%'";
-                        }
-                        if (!empty($_GET['mail'])) {
-                            $queryStr .= " AND u.uyeMail LIKE '%" . $baglan->real_escape_string($_GET['mail']) . "%'";
-                        }
-                        if (!empty($_GET['yetki'])) {
-                            $queryStr .= " AND u.uyeYetkiID = " . intval($_GET['yetki']);
-                        }
-
-                        $query = $baglan->query($queryStr);
-
-                        if ($query->num_rows > 0) {
-                            while ($row = $query->fetch_assoc()) {
-                                echo '
-                                    <div class="message-summary border p-3 mb-2">
-                                        <strong>' . htmlspecialchars($row['uyeMail']) . '</strong>
-                                        <p>Telefon: ' . htmlspecialchars($row['uyeTelNo']) . '</p>
-                                        <p>Yetki: ' . htmlspecialchars($row['yetkiAdi']) . '</p>
-                                        <button class="btn btn-warning btn-sm" onclick="openYetkiModal(' . $row['uyeID'] . ', \'' . $row['uyeYetkiID'] . '\')">Yetki Düzenle</button>
-                                        <a href="kullaniciProfilDetay.php?id=' . $row['uyeID'] . '" class="btn btn-info btn-sm">Daha Fazla Görüntüle</a>
-                                    </div>
-                                ';
-                            }
-                        } else {
-                            echo "<p>Filtreleme sonucunda üye bulunamadı.</p>";
-                        }
-                        ?>
-                    </div>
-
-                    <!-- Hakkımızda ve İletişim İçerik Yönetimi -->
-                    <hr>
-                    <h4>Sayfa İçerik Yönetimi</h4>
-                    <?php
-                    // Dosya yolları
-                    $hakkimizdaDosya = 'hakkimizda.php';
-                    $iletisimDosya = 'iletisim.php';
-
-                    // Hakkımızda.php içeriğini parçala
-                    $hakkimizdaIcerik = file_exists($hakkimizdaDosya) ? file_get_contents($hakkimizdaDosya) : '';
-                    $hakkimizdaTitle = '';
-                    $hakkimizdaHeading = '';
-                    $hakkimizdaImage = '';
-                    $hakkimizdaParagraphs = [];
-                    $hakkimizdaContactHeading = '';
-                    $hakkimizdaContactText = '';
-                    $hakkimizdaContactLinkText = '';
-                    $hakkimizdaContactLinkHref = '';
-
-                    if ($hakkimizdaIcerik) {
-                        // Title
-                        if (preg_match('/<title>(.*?)<\/title>/s', $hakkimizdaIcerik, $matches)) {
-                            $hakkimizdaTitle = $matches[1];
-                        }
-                        // Main heading h1
-                        if (preg_match('/<h1.*?>(.*?)<\/h1>/s', $hakkimizdaIcerik, $matches)) {
-                            $hakkimizdaHeading = strip_tags($matches[1]);
-                        }
-                        // Image src
-                        if (preg_match('/<img.*?src=["\'](.*?)["\'].*?>/s', $hakkimizdaIcerik, $matches)) {
-                            $hakkimizdaImage = $matches[1];
-                        }
-                        // Paragraphs in main content (between <div class="col-md-6"> and </div>)
-                        if (preg_match_all('/<div class="col-md-6 mx-auto mb-4">\s*(.*?)\s*<\/div>/s', $hakkimizdaIcerik, $divMatches)) {
-                            $contentDiv = $divMatches[1][0] ?? '';
-                            if ($contentDiv) {
-                                preg_match_all('/<p>(.*?)<\/p>/s', $contentDiv, $pMatches);
-                                $hakkimizdaParagraphs = array_map('strip_tags', $pMatches[1]);
-                            }
-                        }
-                        // Contact heading and paragraph with link
-                        if (preg_match('/<div class="text-center mt-5">(.*?)<\/div>/s', $hakkimizdaIcerik, $contactDiv)) {
-                            $contactContent = $contactDiv[1];
-                            if (preg_match('/<h3.*?>(.*?)<\/h3>/s', $contactContent, $h3Match)) {
-                                $hakkimizdaContactHeading = strip_tags($h3Match[1]);
-                            }
-                            if (preg_match('/<p>(.*?)<a href=["\'](.*?)["\'].*?>(.*?)<\/a>(.*?)<\/p>/s', $contactContent, $pMatch)) {
-                                $hakkimizdaContactText = trim(strip_tags($pMatch[1] . $pMatch[4]));
-                                $hakkimizdaContactLinkHref = $pMatch[2];
-                                $hakkimizdaContactLinkText = $pMatch[3];
-                            }
-                        }
-                    }
-
-                    // Fix: Ensure hakkimizdaParagraphs is always an array for the form
-                    if (!is_array($hakkimizdaParagraphs)) {
+                        // Hakkımızda.php içeriğini parçala
+                        $hakkimizdaIcerik = file_exists($hakkimizdaDosya) ? file_get_contents($hakkimizdaDosya) : '';
+                        $hakkimizdaTitle = '';
+                        $hakkimizdaHeading = '';
+                        $hakkimizdaImage = '';
                         $hakkimizdaParagraphs = [];
-                    }
+                        $hakkimizdaContactHeading = '';
+                        $hakkimizdaContactText = '';
+                        $hakkimizdaContactLinkText = '';
+                        $hakkimizdaContactLinkHref = '';
 
-                    // iletisim.php içeriğini parçala
-                    $iletisimIcerik = file_exists($iletisimDosya) ? file_get_contents($iletisimDosya) : '';
-                    $iletisimTitle = '';
-                    $iletisimHeading = '';
-                    $iletisimIntro = '';
-                    $iletisimInstagram = '';
-                    $iletisimWhatsapp = '';
-                    $iletisimMail = '';
+                        if ($hakkimizdaIcerik) {
+                            // Title
+                            if (preg_match('/<title>(.*?)<\/title>/s', $hakkimizdaIcerik, $matches)) {
+                                $hakkimizdaTitle = $matches[1];
+                            }
+                            // Main heading h1
+                            if (preg_match('/<h1.*?>(.*?)<\/h1>/s', $hakkimizdaIcerik, $matches)) {
+                                $hakkimizdaHeading = strip_tags($matches[1]);
+                            }
+                            // Image src
+                            if (preg_match('/<img.*?src=["\'](.*?)["\'].*?>/s', $hakkimizdaIcerik, $matches)) {
+                                $hakkimizdaImage = $matches[1];
+                            }
+                            // Paragraphs in main content (between <div class="col-md-6"> and </div>)
+                            if (preg_match_all('/<div class="col-md-6 mx-auto mb-4">\s*(.*?)\s*<\/div>/s', $hakkimizdaIcerik, $divMatches)) {
+                                $contentDiv = $divMatches[1][0] ?? '';
+                                if ($contentDiv) {
+                                    preg_match_all('/<p>(.*?)<\/p>/s', $contentDiv, $pMatches);
+                                    $hakkimizdaParagraphs = array_map('strip_tags', $pMatches[1]);
+                                }
+                            }
+                            // Contact heading and paragraph with link
+                            if (preg_match('/<div class="text-center mt-5">(.*?)<\/div>/s', $hakkimizdaIcerik, $contactDiv)) {
+                                $contactContent = $contactDiv[1];
+                                if (preg_match('/<h3.*?>(.*?)<\/h3>/s', $contactContent, $h3Match)) {
+                                    $hakkimizdaContactHeading = strip_tags($h3Match[1]);
+                                }
+                                if (preg_match('/<p>(.*?)<a href=["\'](.*?)["\'].*?>(.*?)<\/a>(.*?)<\/p>/s', $contactContent, $pMatch)) {
+                                    $hakkimizdaContactText = trim(strip_tags($pMatch[1] . $pMatch[4]));
+                                    $hakkimizdaContactLinkHref = $pMatch[2];
+                                    $hakkimizdaContactLinkText = $pMatch[3];
+                                }
+                            }
+                        }
 
-                    if ($iletisimIcerik) {
-                        // Title
-                        if (preg_match('/<title>(.*?)<\/title>/s', $iletisimIcerik, $matches)) {
-                            $iletisimTitle = $matches[1];
+                        // Fix: Ensure hakkimizdaParagraphs is always an array for the form
+                        if (!is_array($hakkimizdaParagraphs)) {
+                            $hakkimizdaParagraphs = [];
                         }
-                        // Heading h1
-                        if (preg_match('/<h1.*?>(.*?)<\/h1>/s', $iletisimIcerik, $matches)) {
-                            $iletisimHeading = strip_tags($matches[1]);
-                        }
-                        // Intro paragraph
-                        if (preg_match('/<div class="contact-section">.*?<p>(.*?)<\/p>/s', $iletisimIcerik, $matches)) {
-                            $iletisimIntro = strip_tags($matches[1]);
-                        }
-                        // Instagram link
-                        if (preg_match('/<a href=["\'](https?:\/\/www\.instagram\.com\/[^"\']+)["\'].*?class="contact-icons"/s', $iletisimIcerik, $matches)) {
-                            $iletisimInstagram = $matches[1];
-                        }
-                        // Whatsapp link
-                        if (preg_match('/<a href=["\'](https?:\/\/wa\.me\/[^"\']+)["\'].*?class="contact-icons"/s', $iletisimIcerik, $matches)) {
-                            $iletisimWhatsapp = $matches[1];
-                        }
-                        // Mailto link
-                        if (preg_match('/<a href=["\']mailto:([^"\']+)["\'].*?class="contact-icons"/s', $iletisimIcerik, $matches)) {
-                            $iletisimMail = $matches[1];
-                        }
-                    }
 
-                    // İçerik güncelleme işlemi
+                        // iletisim.php içeriğini parçala
+                        $iletisimIcerik = file_exists($iletisimDosya) ? file_get_contents($iletisimDosya) : '';
+                        $iletisimTitle = '';
+                        $iletisimHeading = '';
+                        $iletisimIntro = '';
+                        $iletisimInstagram = '';
+                        $iletisimWhatsapp = '';
+                        $iletisimMail = '';
+
+                        if ($iletisimIcerik) {
+                            // Title
+                            if (preg_match('/<title>(.*?)<\/title>/s', $iletisimIcerik, $matches)) {
+                                $iletisimTitle = $matches[1];
+                            }
+                            // Heading h1
+                            if (preg_match('/<h1.*?>(.*?)<\/h1>/s', $iletisimIcerik, $matches)) {
+                                $iletisimHeading = strip_tags($matches[1]);
+                            }
+                            // Intro paragraph
+                            if (preg_match('/<div class="contact-section">.*?<p>(.*?)<\/p>/s', $iletisimIcerik, $matches)) {
+                                $iletisimIntro = strip_tags($matches[1]);
+                            }
+                            // Instagram link
+                            if (preg_match('/<a href=["\'](https?:\/\/www\.instagram\.com\/[^"\']+)["\'].*?class="contact-icons"/s', $iletisimIcerik, $matches)) {
+                                $iletisimInstagram = $matches[1];
+                            }
+                            // Whatsapp link
+                            if (preg_match('/<a href=["\'](https?:\/\/wa\.me\/[^"\']+)["\'].*?class="contact-icons"/s', $iletisimIcerik, $matches)) {
+                                $iletisimWhatsapp = $matches[1];
+                            }
+                            // Mailto link
+                            if (preg_match('/<a href=["\']mailto:([^"\']+)["\'].*?class="contact-icons"/s', $iletisimIcerik, $matches)) {
+                                $iletisimMail = $matches[1];
+                            }
+                        }
+
+                        // İçerik güncelleme işlemi
                         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sayfa_icerik_guncelle'])) {
                             $sayfa = $_POST['sayfa'];
 
@@ -496,7 +500,7 @@ if (!$kullanici) {
                                 $contactLinkHref = $_POST['contactLinkHref'] ?? '';
 
                                 // Remove empty paragraphs
-                                $paragraphs = array_filter($paragraphs, function($para) {
+                                $paragraphs = array_filter($paragraphs, function ($para) {
                                     return trim($para) !== '';
                                 });
 
@@ -526,330 +530,326 @@ if (!$kullanici) {
                                 $iletisimIcerik = $newContent;
                             }
                         }
-                    ?>
+                        ?>
 
-                    <div class="row mt-4">
-                        <div class="col-md-6">
-                            <h5>Hakkımızda Sayfası</h5>
-                            <form method="POST" id="hakkimizdaForm">
-                                <input type="hidden" name="sayfa" value="hakkimizda">
-                                <input type="hidden" name="sayfa_icerik_guncelle" value="1">
-                                <div class="mb-3">
-                                    <label for="title" class="form-label">Sayfa Başlığı (title)</label>
-                                    <input type="text" class="form-control" id="title" name="title" value="<?php echo htmlspecialchars($hakkimizdaTitle); ?>" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="heading" class="form-label">Ana Başlık (h1)</label>
-                                    <input type="text" class="form-control" id="heading" name="heading" value="<?php echo htmlspecialchars($hakkimizdaHeading); ?>" required>
-                                </div>
-                                <div id="paragraphsContainer">
-                                    
-                                    <?php foreach ($hakkimizdaParagraphs as $index => $paragraph): ?>
-                                        <div class="mb-3">
-                                            <label for="para<?php echo $index; ?>" class="form-label">Paragraf <?php echo $index + 1; ?></label>
-                                    <textarea class="form-control" id="para<?php echo $index; ?>" name="para[]" rows="3"><?php echo htmlspecialchars($paragraph); ?></textarea>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="newParagraph" class="form-label">Yeni Paragraf Ekle</label>
-                                    <textarea class="form-control" id="newParagraph" rows="3"></textarea>
-                                    <button type="button" class="btn btn-secondary mt-2" id="addParagraphBtn">Paragraf Ekle</button>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="contactHeading" class="form-label">İletişim Başlığı (h3)</label>
-                                    <input type="text" class="form-control" id="contactHeading" name="contactHeading" value="<?php echo htmlspecialchars($hakkimizdaContactHeading); ?>" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="contactText" class="form-label">İletişim Metni (bağlantı öncesi ve sonrası)</label>
-                                    <textarea class="form-control" id="contactText" name="contactText" rows="2" required><?php echo htmlspecialchars($hakkimizdaContactText); ?></textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="contactLinkText" class="form-label">İletişim Bağlantı Metni</label>
-                                    <input type="text" class="form-control" id="contactLinkText" name="contactLinkText" value="<?php echo htmlspecialchars($hakkimizdaContactLinkText); ?>" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="contactLinkHref" class="form-label">İletişim Bağlantı URL</label>
-                                    <input type="text" class="form-control" id="contactLinkHref" name="contactLinkHref" value="<?php echo htmlspecialchars($hakkimizdaContactLinkHref); ?>" required>
-                                </div>
-                                <button type="submit" class="btn btn-success mt-2">Güncelle</button>
-                            </form>
-                        </div>
-                        <script>
-                            document.getElementById('addParagraphBtn').addEventListener('click', function() {
-                                const newParaText = document.getElementById('newParagraph').value.trim();
-                                if (newParaText === '') {
-                                    alert('Lütfen eklemek için bir paragraf yazın.');
-                                    return;
-                                }
-                                const container = document.getElementById('paragraphsContainer');
-                                const paraCount = container.querySelectorAll('textarea[name="para[]"]').length;
-                                const div = document.createElement('div');
-                                div.classList.add('mb-3');
-                                div.innerHTML = `
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <h5>Hakkımızda Sayfası</h5>
+                                <form method="POST" id="hakkimizdaForm">
+                                    <input type="hidden" name="sayfa" value="hakkimizda">
+                                    <input type="hidden" name="sayfa_icerik_guncelle" value="1">
+                                    <div class="mb-3">
+                                        <label for="title" class="form-label">Sayfa Başlığı (title)</label>
+                                        <input type="text" class="form-control" id="title" name="title" value="<?php echo htmlspecialchars($hakkimizdaTitle); ?>" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="heading" class="form-label">Ana Başlık (h1)</label>
+                                        <input type="text" class="form-control" id="heading" name="heading" value="<?php echo htmlspecialchars($hakkimizdaHeading); ?>" required>
+                                    </div>
+                                    <div id="paragraphsContainer">
+
+                                        <?php foreach ($hakkimizdaParagraphs as $index => $paragraph): ?>
+                                            <div class="mb-3">
+                                                <label for="para<?php echo $index; ?>" class="form-label">Paragraf <?php echo $index + 1; ?></label>
+                                                <textarea class="form-control" id="para<?php echo $index; ?>" name="para[]" rows="3"><?php echo htmlspecialchars($paragraph); ?></textarea>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="newParagraph" class="form-label">Yeni Paragraf Ekle</label>
+                                        <textarea class="form-control" id="newParagraph" rows="3"></textarea>
+                                        <button type="button" class="btn btn-secondary mt-2" id="addParagraphBtn">Paragraf Ekle</button>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="contactHeading" class="form-label">İletişim Başlığı (h3)</label>
+                                        <input type="text" class="form-control" id="contactHeading" name="contactHeading" value="<?php echo htmlspecialchars($hakkimizdaContactHeading); ?>" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="contactText" class="form-label">İletişim Metni (bağlantı öncesi ve sonrası)</label>
+                                        <textarea class="form-control" id="contactText" name="contactText" rows="2" required><?php echo htmlspecialchars($hakkimizdaContactText); ?></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="contactLinkText" class="form-label">İletişim Bağlantı Metni</label>
+                                        <input type="text" class="form-control" id="contactLinkText" name="contactLinkText" value="<?php echo htmlspecialchars($hakkimizdaContactLinkText); ?>" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="contactLinkHref" class="form-label">İletişim Bağlantı URL</label>
+                                        <input type="text" class="form-control" id="contactLinkHref" name="contactLinkHref" value="<?php echo htmlspecialchars($hakkimizdaContactLinkHref); ?>" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-success mt-2">Güncelle</button>
+                                </form>
+                            </div>
+                            <script>
+                                document.getElementById('addParagraphBtn').addEventListener('click', function() {
+                                    const newParaText = document.getElementById('newParagraph').value.trim();
+                                    if (newParaText === '') {
+                                        alert('Lütfen eklemek için bir paragraf yazın.');
+                                        return;
+                                    }
+                                    const container = document.getElementById('paragraphsContainer');
+                                    const paraCount = container.querySelectorAll('textarea[name="para[]"]').length;
+                                    const div = document.createElement('div');
+                                    div.classList.add('mb-3');
+                                    div.innerHTML = `
                                 <label for="para${paraCount}" class="form-label">Paragraf ${paraCount + 1}</label>
                                 <textarea class="form-control" id="para${paraCount}" name="para[]" rows="3" required>${newParaText}</textarea>
                             `;
-                                container.appendChild(div);
-                                document.getElementById('newParagraph').value = '';
-                            });
-                        </script>
-                        <div class="col-md-6">
-                            <h5>İletişim Sayfası</h5>
-                            <form method="POST">
-                                <input type="hidden" name="sayfa" value="iletisim">
-                                <input type="hidden" name="sayfa_icerik_guncelle" value="1">
-                                <div class="mb-3">
-                                    <label for="title" class="form-label">Sayfa Başlığı (title)</label>
-                                    <input type="text" class="form-control" id="title" name="title" value="<?php echo htmlspecialchars($iletisimTitle); ?>" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="heading" class="form-label">Ana Başlık (h1)</label>
-                                    <input type="text" class="form-control" id="heading" name="heading" value="<?php echo htmlspecialchars($iletisimHeading); ?>" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="intro" class="form-label">Giriş Paragrafı</label>
-                                    <textarea class="form-control" id="intro" name="intro" rows="3" required><?php echo htmlspecialchars($iletisimIntro); ?></textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="instagram" class="form-label">Instagram URL</label>
-                                    <input type="text" class="form-control" id="instagram" name="instagram" value="<?php echo htmlspecialchars($iletisimInstagram); ?>" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="whatsapp" class="form-label">WhatsApp URL</label>
-                                    <input type="text" class="form-control" id="whatsapp" name="whatsapp" value="<?php echo htmlspecialchars($iletisimWhatsapp); ?>" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="mail" class="form-label">E-posta Adresi</label>
-                                    <input type="email" class="form-control" id="mail" name="mail" value="<?php echo htmlspecialchars($iletisimMail); ?>" required>
-                                </div>
-                                <button type="submit" class="btn btn-success mt-2">Güncelle</button>
-                            </form>
+                                    container.appendChild(div);
+                                    document.getElementById('newParagraph').value = '';
+                                });
+                            </script>
+                            <div class="col-md-6">
+                                <h5>İletişim Sayfası</h5>
+                                <form method="POST">
+                                    <input type="hidden" name="sayfa" value="iletisim">
+                                    <input type="hidden" name="sayfa_icerik_guncelle" value="1">
+                                    <div class="mb-3">
+                                        <label for="title" class="form-label">Sayfa Başlığı (title)</label>
+                                        <input type="text" class="form-control" id="title" name="title" value="<?php echo htmlspecialchars($iletisimTitle); ?>" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="heading" class="form-label">Ana Başlık (h1)</label>
+                                        <input type="text" class="form-control" id="heading" name="heading" value="<?php echo htmlspecialchars($iletisimHeading); ?>" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="intro" class="form-label">Giriş Paragrafı</label>
+                                        <textarea class="form-control" id="intro" name="intro" rows="3" required><?php echo htmlspecialchars($iletisimIntro); ?></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="instagram" class="form-label">Instagram URL</label>
+                                        <input type="text" class="form-control" id="instagram" name="instagram" value="<?php echo htmlspecialchars($iletisimInstagram); ?>" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="whatsapp" class="form-label">WhatsApp URL</label>
+                                        <input type="text" class="form-control" id="whatsapp" name="whatsapp" value="<?php echo htmlspecialchars($iletisimWhatsapp); ?>" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="mail" class="form-label">E-posta Adresi</label>
+                                        <input type="email" class="form-control" id="mail" name="mail" value="<?php echo htmlspecialchars($iletisimMail); ?>" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-success mt-2">Güncelle</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Yetki Düzenleme Modal -->
+                <div class="modal fade" id="yetkiModal" tabindex="-1" aria-labelledby="yetkiModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="yetkiModalLabel">Yetki Düzenle</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="yetkiForm">
+                                    <input type="hidden" id="uyeId" name="uyeId">
+                                    <div class="mb-3">
+                                        <label for="uyeYetki" class="form-label">Yetki</label>
+                                        <select id="uyeYetki" name="uyeYetki" class="form-control">
+                                            <option value="1">Admin</option>
+                                            <option value="2">Üye</option>
+                                            <option value="3">Şirket</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Yetki Düzenleme Modal -->
-            <div class="modal fade" id="yetkiModal" tabindex="-1" aria-labelledby="yetkiModalLabel" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="yetkiModalLabel">Yetki Düzenle</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="yetkiForm">
-                                <input type="hidden" id="uyeId" name="uyeId">
-                                <div class="mb-3">
-                                    <label for="uyeYetki" class="form-label">Yetki</label>
-                                    <select id="uyeYetki" name="uyeYetki" class="form-control">
-                                        <option value="1">Admin</option>
-                                        <option value="2">Üye</option>
-                                        <option value="3">Şirket</option>
-                                    </select>
-                                </div>
-                                <button type="submit" class="btn btn-primary">Kaydet</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                <script>
+                    // Yetki düzenleme modalını aç
+                    function openYetkiModal(uyeId, mevcutYetki) {
+                        document.getElementById('uyeId').value = uyeId;
+                        document.getElementById('uyeYetki').value = mevcutYetki;
 
-            <script>
-                // Yetki düzenleme modalını aç
-                function openYetkiModal(uyeId, mevcutYetki) {
-                    document.getElementById('uyeId').value = uyeId;
-                    document.getElementById('uyeYetki').value = mevcutYetki;
+                        const modal = new bootstrap.Modal(document.getElementById('yetkiModal'));
+                        modal.show();
+                    }
 
-                    const modal = new bootstrap.Modal(document.getElementById('yetkiModal'));
-                    modal.show();
-                }
+                    // Yetki düzenleme formunu gönder
+                    document.getElementById('yetkiForm').addEventListener('submit', function(e) {
+                        e.preventDefault();
 
-                // Yetki düzenleme formunu gönder
-                document.getElementById('yetkiForm').addEventListener('submit', function(e) {
-                    e.preventDefault();
+                        const uyeId = document.getElementById('uyeId').value;
+                        const uyeYetki = document.getElementById('uyeYetki').value;
 
-                    const uyeId = document.getElementById('uyeId').value;
-                    const uyeYetki = document.getElementById('uyeYetki').value;
-
-                    console.log('Gönderilen veriler:', {
-                        uyeId,
-                        uyeYetki
-                    });
-
-                    // FormData kullanarak verileri gönder
-                    const formData = new FormData();
-                    formData.append('action', 'updateYetki');
-                    formData.append('uyeId', uyeId);
-                    formData.append('uyeYetki', uyeYetki);
-
-                    fetch('yetki_guncelle.php', { // Ayrı bir PHP dosyası kullanın
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Sunucu yanıtı: ' + response.status);
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            console.log('Sunucudan dönen yanıt:', data);
-                            if (data.success) {
-                                alert('Üye yetkisi başarıyla güncellendi!');
-                                window.location.href = 'profil.php?tab=yonetim';
-                            } else {
-                                alert('Bir hata oluştu: ' + data.message);
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Hata:', error);
-                            alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+                        console.log('Gönderilen veriler:', {
+                            uyeId,
+                            uyeYetki
                         });
-                });
-            </script>
 
-            <?php
-            // Yetki düzenleme işlemi
-            if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'updateYetki') {
-                header('Content-Type: application/json');
-                $uyeId = intval($_POST['uyeId']);
-                $uyeYetki = intval($_POST['uyeYetki']);
-                if ($uyeId > 0 && in_array($uyeYetki, [1, 2, 3])) {
-                    $query = $baglan->prepare("UPDATE t_uyeler SET uyeYetkiID = ? WHERE uyeID = ?");
-                    $query->bind_param("ii", $uyeYetki, $uyeId);
+                        // FormData kullanarak verileri gönder
+                        const formData = new FormData();
+                        formData.append('action', 'updateYetki');
+                        formData.append('uyeId', uyeId);
+                        formData.append('uyeYetki', uyeYetki);
 
-                    if ($query->execute()) {
-                        echo json_encode(['success' => true]);
+                        fetch('yetki_guncelle.php', { // Ayrı bir PHP dosyası kullanın
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Sunucu yanıtı: ' + response.status);
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                console.log('Sunucudan dönen yanıt:', data);
+                                if (data.success) {
+                                    alert('Üye yetkisi başarıyla güncellendi!');
+                                    window.location.href = 'profil.php?tab=yonetim';
+                                } else {
+                                    alert('Bir hata oluştu: ' + data.message);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Hata:', error);
+                                alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+                            });
+                    });
+                </script>
+
+                <?php
+                // Yetki düzenleme işlemi
+                if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'updateYetki') {
+                    header('Content-Type: application/json');
+                    $uyeId = intval($_POST['uyeId']);
+                    $uyeYetki = intval($_POST['uyeYetki']);
+                    if ($uyeId > 0 && in_array($uyeYetki, [1, 2, 3])) {
+                        $query = $baglan->prepare("UPDATE t_uyeler SET uyeYetkiID = ? WHERE uyeID = ?");
+                        $query->bind_param("ii", $uyeYetki, $uyeId);
+
+                        if ($query->execute()) {
+                            echo json_encode(['success' => true]);
+                        } else {
+                            echo json_encode(['success' => false, 'message' => 'Veritabanı hatası: ' . $baglan->error]);
+                        }
                     } else {
-                        echo json_encode(['success' => false, 'message' => 'Veritabanı hatası: ' . $baglan->error]);
+                        echo json_encode(['success' => false, 'message' => 'Geçersiz veri.']);
                     }
-                } else {
-                    echo json_encode(['success' => false, 'message' => 'Geçersiz veri.']);
+                    exit;
                 }
-                exit;
-            }
-            ?>
+                ?>
 
+                </div>
         </div>
-    </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            function openYetkiModal(uyeId, mevcutYetki) {
+                document.getElementById('uyeId').value = uyeId;
+                document.getElementById('uyeYetki').value = mevcutYetki;
 
-    <footer>
-        <p>&copy; 2025 Prestij Emlak. Tüm hakları saklıdır.</p>
-    </footer>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function openYetkiModal(uyeId, mevcutYetki) {
-            document.getElementById('uyeId').value = uyeId;
-            document.getElementById('uyeYetki').value = mevcutYetki;
+                const modal = new bootstrap.Modal(document.getElementById('yetkiModal'));
+                modal.show();
+            }
+        </script>
+        <script>
+            function toggleMessageBox(sohbetId) {
+                // Tüm mesaj kutularını gizle
+                document.querySelectorAll('.message-box').forEach(box => box.classList.add('d-none'));
 
-            const modal = new bootstrap.Modal(document.getElementById('yetkiModal'));
-            modal.show();
-        }
-    </script>
-    <script>
-        function toggleMessageBox(sohbetId) {
-            // Tüm mesaj kutularını gizle
-            document.querySelectorAll('.message-box').forEach(box => box.classList.add('d-none'));
+                // Tıklanan mesajın kutusunu göster
+                const messageBox = document.getElementById(sohbetId);
+                messageBox.classList.remove('d-none');
 
-            // Tıklanan mesajın kutusunu göster
-            const messageBox = document.getElementById(sohbetId);
-            messageBox.classList.remove('d-none');
+                // Siyah opak arka planı göster
+                document.getElementById('overlay').classList.remove('d-none');
+            }
 
-            // Siyah opak arka planı göster
-            document.getElementById('overlay').classList.remove('d-none');
-        }
+            function closeMessageBox() {
+                // Tüm mesaj kutularını gizle
+                document.querySelectorAll('.message-box').forEach(box => box.classList.add('d-none'));
 
-        function closeMessageBox() {
-            // Tüm mesaj kutularını gizle
-            document.querySelectorAll('.message-box').forEach(box => box.classList.add('d-none'));
+                // Siyah opak arka planı gizle
+                document.getElementById('overlay').classList.add('d-none');
+            }
 
-            // Siyah opak arka planı gizle
-            document.getElementById('overlay').classList.add('d-none');
-        }
+            // İlan verilerini modal içine yükleme
+            function loadIlanData(id, baslik, aciklama, fiyat, metrekare, odaSayisi, konum, isitma, resimler) {
+                document.getElementById('ilanId').value = id;
+                document.getElementById('ilanBaslik').value = baslik;
+                document.getElementById('ilanAciklama').value = aciklama;
+                document.getElementById('ilanFiyat').value = fiyat;
+                document.getElementById('ilanMetrekare').value = metrekare;
+                document.getElementById('ilanOdaSayisi').value = odaSayisi;
+                document.getElementById('ilanKonum').value = konum;
+                document.getElementById('ilanIsitma').value = isitma;
 
-        // İlan verilerini modal içine yükleme
-        function loadIlanData(id, baslik, aciklama, fiyat, metrekare, odaSayisi, konum, isitma, resimler) {
-            document.getElementById('ilanId').value = id;
-            document.getElementById('ilanBaslik').value = baslik;
-            document.getElementById('ilanAciklama').value = aciklama;
-            document.getElementById('ilanFiyat').value = fiyat;
-            document.getElementById('ilanMetrekare').value = metrekare;
-            document.getElementById('ilanOdaSayisi').value = odaSayisi;
-            document.getElementById('ilanKonum').value = konum;
-            document.getElementById('ilanIsitma').value = isitma;
-
-            // Mevcut resimleri yükle
-            const mevcutResimlerDiv = document.getElementById('mevcutResimler');
-            mevcutResimlerDiv.innerHTML = ''; // Önceki resimleri temizle
-            resimler.forEach(resim => {
-                const img = document.createElement('img');
-                img.src = resim.url;
-                img.alt = 'İlan Resmi';
-                img.style.width = '100px';
-                img.style.height = '100px';
-                img.style.objectFit = 'cover';
-                img.style.marginRight = '10px';
-                mevcutResimlerDiv.appendChild(img);
-            });
-        }
-
-        // Form gönderme işlemi
-        document.getElementById('editIlanForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            // Form verilerini al
-            const formData = new FormData(this);
-
-            // AJAX ile düzenleme işlemini gönder
-            fetch('ilanDuzenle.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('İlan başarıyla güncellendi!');
-                        location.reload(); // Sayfayı yenile
-                    } else {
-                        alert('Bir hata oluştu: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Hata:', error);
-                    alert('Bir hata oluştu.');
+                // Mevcut resimleri yükle
+                const mevcutResimlerDiv = document.getElementById('mevcutResimler');
+                mevcutResimlerDiv.innerHTML = ''; // Önceki resimleri temizle
+                resimler.forEach(resim => {
+                    const img = document.createElement('img');
+                    img.src = resim.url;
+                    img.alt = 'İlan Resmi';
+                    img.style.width = '100px';
+                    img.style.height = '100px';
+                    img.style.objectFit = 'cover';
+                    img.style.marginRight = '10px';
+                    mevcutResimlerDiv.appendChild(img);
                 });
-        });
+            }
 
-        // Üye ilanlarını yükleme
-        function loadUyeIlanlari(uyeId, uyeAdi, uyeEmail, mevcutYetki) {
-            // Üye bilgilerini modal içine yükle
-            document.getElementById('uyeAdi').innerText = `Üye: ${uyeAdi}`;
-            document.getElementById('uyeEmail').innerText = `E-posta: ${uyeEmail}`;
-            document.getElementById('uyeYetki').value = mevcutYetki;
+            // Form gönderme işlemi
+            document.getElementById('editIlanForm').addEventListener('submit', function(e) {
+                e.preventDefault();
 
-            // Üyenin ilanlarını yükle
-            const ilanlarDiv = document.getElementById('uyeIlanlari');
-            ilanlarDiv.innerHTML = ''; // Önceki ilanları temizle
+                // Form verilerini al
+                const formData = new FormData(this);
 
-            // Örnek ilanlar (AJAX ile sunucudan çekilebilir)
-            const ilanlar = [{
-                    id: 1,
-                    baslik: 'İlan Başlığı 1',
-                    fiyat: 500000
-                },
-                {
-                    id: 2,
-                    baslik: 'İlan Başlığı 2',
-                    fiyat: 750000
-                }
-            ];
+                // AJAX ile düzenleme işlemini gönder
+                fetch('ilanDuzenle.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('İlan başarıyla güncellendi!');
+                            location.reload(); // Sayfayı yenile
+                        } else {
+                            alert('Bir hata oluştu: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Hata:', error);
+                        alert('Bir hata oluştu.');
+                    });
+            });
 
-            ilanlar.forEach(ilan => {
-                const ilanDiv = document.createElement('div');
-                ilanDiv.className = 'col-md-4';
-                ilanDiv.innerHTML = `
+            // Üye ilanlarını yükleme
+            function loadUyeIlanlari(uyeId, uyeAdi, uyeEmail, mevcutYetki) {
+                // Üye bilgilerini modal içine yükle
+                document.getElementById('uyeAdi').innerText = `Üye: ${uyeAdi}`;
+                document.getElementById('uyeEmail').innerText = `E-posta: ${uyeEmail}`;
+                document.getElementById('uyeYetki').value = mevcutYetki;
+
+                // Üyenin ilanlarını yükle
+                const ilanlarDiv = document.getElementById('uyeIlanlari');
+                ilanlarDiv.innerHTML = ''; // Önceki ilanları temizle
+
+                // Örnek ilanlar (AJAX ile sunucudan çekilebilir)
+                const ilanlar = [{
+                        id: 1,
+                        baslik: 'İlan Başlığı 1',
+                        fiyat: 500000
+                    },
+                    {
+                        id: 2,
+                        baslik: 'İlan Başlığı 2',
+                        fiyat: 750000
+                    }
+                ];
+
+                ilanlar.forEach(ilan => {
+                    const ilanDiv = document.createElement('div');
+                    ilanDiv.className = 'col-md-4';
+                    ilanDiv.innerHTML = `
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title">${ilan.baslik}</h5>
@@ -858,111 +858,118 @@ if (!$kullanici) {
                         </div>
                     </div>
                 `;
-                ilanlarDiv.appendChild(ilanDiv);
+                    ilanlarDiv.appendChild(ilanDiv);
+                });
+
+                // Modalı aç
+                const modal = new bootstrap.Modal(document.getElementById('uyeIlanlariModal'));
+                modal.show();
+            }
+
+            // İlan kaldırma
+            function kaldirIlan(ilanId) {
+                if (confirm('Bu ilanı kaldırmak istediğinize emin misiniz?')) {
+                    // AJAX ile ilan kaldırma işlemi yapılabilir
+                    alert(`İlan ${ilanId} kaldırıldı.`);
+                }
+            }
+
+            // Üye yetkisini güncelleme
+            function guncelleYetki() {
+                const uyeYetki = document.getElementById('uyeYetki').value;
+
+                // AJAX ile yetki güncelleme işlemi yapılabilir
+                alert(`Üyenin yetkisi ${uyeYetki} olarak güncellendi.`);
+            }
+
+            // Üye yetkisini düzenleme
+            document.getElementById('uyeYetkiForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const uyeId = document.getElementById('uyeId').value;
+                const uyeYetki = document.getElementById('uyeYetki').value;
+
+                // AJAX ile yetki düzenleme işlemi yapılabilir
+                alert(`Üye ${uyeId} yetkisi ${uyeYetki} olarak güncellendi.`);
             });
 
-            // Modalı aç
-            const modal = new bootstrap.Modal(document.getElementById('uyeIlanlariModal'));
-            modal.show();
-        }
 
-        // İlan kaldırma
-        function kaldirIlan(ilanId) {
-            if (confirm('Bu ilanı kaldırmak istediğinize emin misiniz?')) {
-                // AJAX ile ilan kaldırma işlemi yapılabilir
-                alert(`İlan ${ilanId} kaldırıldı.`);
-            }
-        }
+            // Üye yetkisini düzenleme formunu gönderme
+            document.getElementById('uyeYetkiForm').addEventListener('submit', function(e) {
+                e.preventDefault();
 
-        // Üye yetkisini güncelleme
-        function guncelleYetki() {
-            const uyeYetki = document.getElementById('uyeYetki').value;
+                const uyeId = document.getElementById('uyeId').value;
+                const uyeYetki = document.getElementById('uyeYetki').value;
 
-            // AJAX ile yetki güncelleme işlemi yapılabilir
-            alert(`Üyenin yetkisi ${uyeYetki} olarak güncellendi.`);
-        }
+                // AJAX ile yetki düzenleme işlemi yapılabilir
+                fetch('uyeYetkiDuzenle.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `uyeId=${uyeId}&uyeYetki=${uyeYetki}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Üye yetkisi başarıyla güncellendi!');
+                            location.reload(); // Sayfayı yenile
+                        } else {
+                            alert('Bir hata oluştu: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Hata:', error);
+                        alert('Bir hata oluştu.');
+                    });
+            });
+        </script>
+        <script type="text/javascript">
+            document.addEventListener("DOMContentLoaded", function() {
+                // URL'den parametreleri al
+                const urlParams = new URLSearchParams(window.location.search);
+                const tab = urlParams.get('tab');
 
-        // Üye yetkisini düzenleme
-        document.getElementById('uyeYetkiForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const uyeId = document.getElementById('uyeId').value;
-            const uyeYetki = document.getElementById('uyeYetki').value;
-
-            // AJAX ile yetki düzenleme işlemi yapılabilir
-            alert(`Üye ${uyeId} yetkisi ${uyeYetki} olarak güncellendi.`);
-        });
-
-
-        // Üye yetkisini düzenleme formunu gönderme
-        document.getElementById('uyeYetkiForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const uyeId = document.getElementById('uyeId').value;
-            const uyeYetki = document.getElementById('uyeYetki').value;
-
-            // AJAX ile yetki düzenleme işlemi yapılabilir
-            fetch('uyeYetkiDuzenle.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `uyeId=${uyeId}&uyeYetki=${uyeYetki}`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Üye yetkisi başarıyla güncellendi!');
-                        location.reload(); // Sayfayı yenile
-                    } else {
-                        alert('Bir hata oluştu: ' + data.message);
+                // Eğer "mesajlar" parametresi varsa, o sekmeyi aç
+                if (tab === "mesajlar") {
+                    const tabButton = document.querySelector('button[data-bs-target="#mesajlar"]');
+                    if (tabButton) {
+                        tabButton.click();
                     }
-                })
-                .catch(error => {
-                    console.error('Hata:', error);
-                    alert('Bir hata oluştu.');
-                });
-        });
-    </script>
-    <script type="text/javascript">
-        document.addEventListener("DOMContentLoaded", function() {
-            // URL'den parametreleri al
-            const urlParams = new URLSearchParams(window.location.search);
-            const tab = urlParams.get('tab');
-
-            // Eğer "mesajlar" parametresi varsa, o sekmeyi aç
-            if (tab === "mesajlar") {
-                const tabButton = document.querySelector('button[data-bs-target="#mesajlar"]');
-                if (tabButton) {
-                    tabButton.click();
                 }
-            }
-        });
-        document.addEventListener("DOMContentLoaded", function() {
-            // URL'den parametreleri al
-            const urlParams = new URLSearchParams(window.location.search);
-            const tab = urlParams.get('tab');
+            });
+            document.addEventListener("DOMContentLoaded", function() {
+                // URL'den parametreleri al
+                const urlParams = new URLSearchParams(window.location.search);
+                const tab = urlParams.get('tab');
 
-            // Eğer "mesajlar" parametresi varsa, o sekmeyi aç
-            if (tab === "favoriler") {
-                const tabButton = document.querySelector('button[data-bs-target="#favoriler"]');
-                if (tabButton) {
-                    tabButton.click();
+                // Eğer "mesajlar" parametresi varsa, o sekmeyi aç
+                if (tab === "favoriler") {
+                    const tabButton = document.querySelector('button[data-bs-target="#favoriler"]');
+                    if (tabButton) {
+                        tabButton.click();
+                    }
                 }
-            }
-        });
-        document.addEventListener("DOMContentLoaded", function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const tab = urlParams.get('tab');
+            });
+            document.addEventListener("DOMContentLoaded", function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const tab = urlParams.get('tab');
 
-            if (tab) {
-                const tabButton = document.querySelector(`button[data-bs-target="#${tab}"]`);
-                if (tabButton) {
-                    tabButton.click();
+                if (tab) {
+                    const tabButton = document.querySelector(`button[data-bs-target="#${tab}"]`);
+                    if (tabButton) {
+                        tabButton.click();
+                    }
                 }
-            }
-        });
-    </script>
+            });
+        </script>
+    </div>
+    </div>
+    </div>
+    <footer style="width: 100%; margin-top: 10px;">
+        <p>&copy; 2025 Prestij Emlak. Tüm hakları saklıdır.</p>
+        <p><a href="iletisim.php" style="color: #ff6600; text-decoration: none;">İletişim</a> | <a href="hakkimizda.php" style="color: #ff6600; text-decoration: none;">Hakkımızda</a></p>
+    </footer>
 </body>
 
 </html>

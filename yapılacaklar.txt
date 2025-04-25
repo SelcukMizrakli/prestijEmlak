@@ -26,4 +26,6 @@
 // ilan ekleme sayfası yapılacak, ilanlar sayfasına veri tabanından ilanlar getirilecek
 // profil sayfası komple ayarlanacak (farklı başlıklara ayrılabilir)
 
-ilan duzenleme eklenecek, hakkimizda sayfasi için paragraflar getirilecek 
+yönetim paneli kısmındaki üye listesi daha düzenli hale getirilecek, yalnızca 3 üye görünecek diğer üyeler filtrelemeyle görüntülenecek
+uye aktiflik durumu 0 olan uyeler giris yapamayacak
+uye kayit sirasinda aktiflik durumunu 1 olarak atayacagiz.
