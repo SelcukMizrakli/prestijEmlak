@@ -158,15 +158,15 @@ if (!$kullanici) {
         <?php
         // Profil Güncelleme İşlemi
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['uyeAd']) && isset($_POST['uyeSoyad']) && isset($_POST['uyeTelNo'])) {
-            $uyeAd = htmlspecialchars($_POST['uyeAd']);
-            $uyeSoyad = htmlspecialchars($_POST['uyeSoyad']);
-            $uyeTelNo = htmlspecialchars($_POST['uyeTelNo']);
-            $uyeSifre = isset($_POST['uyeSifre']) && !empty($_POST['uyeSifre']) ? password_hash($_POST['uyeSifre'], PASSWORD_DEFAULT) : null;
-
-            if (empty($uyeAd)) {
+            // Validate uyeAd is not empty and trim whitespace
+            $uyeAd = trim($_POST['uyeAd']);
+            if ($uyeAd === '') {
                 echo json_encode(['success' => false, 'message' => 'Ad alanı boş olamaz.']);
                 exit;
             }
+            $uyeSoyad = htmlspecialchars($_POST['uyeSoyad']);
+            $uyeTelNo = htmlspecialchars($_POST['uyeTelNo']);
+            $uyeSifre = isset($_POST['uyeSifre']) && !empty($_POST['uyeSifre']) ? password_hash($_POST['uyeSifre'], PASSWORD_DEFAULT) : null;
 
             $queryStr = "UPDATE t_uyeler SET uyeAd = ?, uyeSoyad = ?, uyeTelNo = ?, uyeGuncellemeTarihi = NOW()";
             $params = [$uyeAd, $uyeSoyad, $uyeTelNo];
@@ -191,18 +191,7 @@ if (!$kullanici) {
         }
         ?>
 
-        <?php
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (!isset($_POST['uyeAd']) || empty($_POST['uyeAd'])) {
-                echo json_encode(['success' => false, 'message' => 'Ad alanı boş olamaz.']);
-                exit;
-            }
 
-            $uyeAd = htmlspecialchars($_POST['uyeAd']);
-            echo json_encode(['success' => true, 'message' => 'Ad alındı: ' . $uyeAd]);
-            exit;
-        }
-        ?>
 
         <!-- Sekmeler -->
         <ul class="nav nav-tabs mt-4" id="profileTabs" role="tablist">
@@ -430,8 +419,8 @@ if (!$kullanici) {
                             $hakkimizdaImage = $matches[1];
                         }
                         // Paragraphs in main content (between <div class="col-md-6"> and </div>)
-                        if (preg_match_all('/<div class="col-md-6">\s*(.*?)\s*<\/div>/s', $hakkimizdaIcerik, $divMatches)) {
-                            $contentDiv = $divMatches[1][1] ?? '';
+                        if (preg_match_all('/<div class="col-md-6 mx-auto mb-4">\s*(.*?)\s*<\/div>/s', $hakkimizdaIcerik, $divMatches)) {
+                            $contentDiv = $divMatches[1][0] ?? '';
                             if ($contentDiv) {
                                 preg_match_all('/<p>(.*?)<\/p>/s', $contentDiv, $pMatches);
                                 $hakkimizdaParagraphs = array_map('strip_tags', $pMatches[1]);
@@ -449,6 +438,11 @@ if (!$kullanici) {
                                 $hakkimizdaContactLinkText = $pMatch[3];
                             }
                         }
+                    }
+
+                    // Fix: Ensure hakkimizdaParagraphs is always an array for the form
+                    if (!is_array($hakkimizdaParagraphs)) {
+                        $hakkimizdaParagraphs = [];
                     }
 
                     // iletisim.php içeriğini parçala
@@ -488,112 +482,118 @@ if (!$kullanici) {
                     }
 
                     // İçerik güncelleme işlemi
-                    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sayfa_icerik_guncelle'])) {
-                        $sayfa = $_POST['sayfa'];
+                        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sayfa_icerik_guncelle'])) {
+                            $sayfa = $_POST['sayfa'];
 
-                        if ($sayfa === 'hakkimizda') {
-                            $title = $_POST['title'] ?? '';
-                            $heading = $_POST['heading'] ?? '';
-                            $image = $_POST['image'] ?? '';
-                            $paragraphs = $_POST['para'] ?? [];
-                            $contactHeading = $_POST['contactHeading'] ?? '';
-                            $contactText = $_POST['contactText'] ?? '';
-                            $contactLinkText = $_POST['contactLinkText'] ?? '';
-                            $contactLinkHref = $_POST['contactLinkHref'] ?? '';
+                            if ($sayfa === 'hakkimizda') {
+                                $title = $_POST['title'] ?? '';
+                                $heading = $_POST['heading'] ?? '';
+                                $image = $_POST['image'] ?? '';
+                                $paragraphs = $_POST['para'] ?? [];
+                                $contactHeading = $_POST['contactHeading'] ?? '';
+                                $contactText = $_POST['contactText'] ?? '';
+                                $contactLinkText = $_POST['contactLinkText'] ?? '';
+                                $contactLinkHref = $_POST['contactLinkHref'] ?? '';
 
-                            // Build paragraphs HTML
-                            $paragraphsHtml = '';
-                            foreach ($paragraphs as $para) {
-                                $paragraphsHtml .= '<p>' . nl2br(htmlspecialchars($para)) . '</p>' . "\n";
+                                // Remove empty paragraphs
+                                $paragraphs = array_filter($paragraphs, function($para) {
+                                    return trim($para) !== '';
+                                });
+
+                                // Build paragraphs HTML
+                                $paragraphsHtml = '';
+                                foreach ($paragraphs as $para) {
+                                    $paragraphsHtml .= '<p>' . nl2br(htmlspecialchars($para)) . '</p>' . "\n";
+                                }
+
+                                $newContent = "<?php\nsession_start();\n?>\n<!DOCTYPE html>\n<html lang=\"tr\">\n\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>" . htmlspecialchars($title) . "</title>\n  <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n  <link href=\"style.css\" rel=\"stylesheet\">\n</head>\n\n<body>\n  <?php include(\"header.php\"); ?>\n\n  <div class=\"container mt-5\">\n    <h1 class=\"text-center mb-4\">" . htmlspecialchars($heading) . "</h1>\n    <div class=\"row\">\n      <div class=\"col-md-6 mx-auto mb-4\">\n        " . $paragraphsHtml . "\n      </div>\n    </div>\n    <div class=\"text-center mt-5\">\n      <h3>" . htmlspecialchars($contactHeading) . "</h3>\n      <p>\n        " . nl2br(htmlspecialchars($contactText)) . " <a href=\"" . htmlspecialchars($contactLinkHref) . "\" class=\"text-primary\">" . htmlspecialchars($contactLinkText) . "</a>\n      </p>\n    </div>\n  </div>\n  <footer>\n    <p>&copy; 2025 Prestij Emlak. Tüm hakları saklıdır.</p>\n    <p><a href=\"#\" style=\"color: #ff6600; text-decoration: none;\">İletişim</a> | <a href=\"#\" style=\"color: #ff6600; text-decoration: none;\">Gizlilik Politikası</a></p>\n  </footer>\n  <script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js\"></script>\n</body>\n\n</html>";
+
+                                file_put_contents($hakkimizdaDosya, $newContent);
+                                echo '<div class="alert alert-success mt-3">Hakkımızda sayfası başarıyla güncellendi.</div>';
+                                $hakkimizdaIcerik = $newContent;
+                            } elseif ($sayfa === 'iletisim') {
+                                $title = $_POST['title'] ?? '';
+                                $heading = $_POST['heading'] ?? '';
+                                $intro = $_POST['intro'] ?? '';
+                                $instagram = $_POST['instagram'] ?? '';
+                                $whatsapp = $_POST['whatsapp'] ?? '';
+                                $mail = $_POST['mail'] ?? '';
+
+                                $newContent = "<?php\nsession_start();\n?>\n<!DOCTYPE html>\n<html lang=\"tr\">\n\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>" . htmlspecialchars($title) . "</title>\n  <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n  <link href=\"https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css\" rel=\"stylesheet\">\n  <link href=\"style.css\" rel=\"stylesheet\">\n  <style>\n    .contact-icons {\n      font-size: 2rem;\n      margin: 10px;\n      color: #004080;\n      transition: color 0.3s ease;\n    }\n\n    .contact-icons:hover {\n      color: #ff6600;\n    }\n\n    .contact-section {\n      text-align: center;\n      margin-top: 50px;\n    }\n\n    .contact-section h1 {\n      margin-bottom: 20px;\n    }\n\n    .contact-section p {\n      font-size: 1.2rem;\n      margin-bottom: 30px;\n    }\n  </style>\n</head>\n\n<body>\n  <?php include(\"header.php\"); ?>\n\n  <div class=\"container mt-5\">\n    <div class=\"contact-section\">\n      <h1>" . htmlspecialchars($heading) . "</h1>\n      <p>" . nl2br(htmlspecialchars($intro)) . "</p>\n      <div>\n        <!-- Instagram -->\n        <a href=\"" . htmlspecialchars($instagram) . "\" target=\"_blank\" class=\"contact-icons\">\n          <i class=\"bi bi-instagram\"></i>\n        </a>\n        <!-- WhatsApp -->\n        <a href=\"" . htmlspecialchars($whatsapp) . "\" target=\"_blank\" class=\"contact-icons\">\n          <i class=\"bi bi-whatsapp\"></i>\n        </a>\n        <!-- Mail -->\n        <a href=\"mailto:" . htmlspecialchars($mail) . "\" target=\"_blank\" class=\"contact-icons\">\n          <i class=\"bi bi-envelope\"></i>\n        </a>\n      </div>\n    </div>\n  </div>\n  <footer>\n    <p>&copy; 2025 Prestij Emlak. Tüm hakları saklıdır.</p>\n    <p><a href=\"#\" style=\"color: #ff6600; text-decoration: none;\">İletişim</a> | <a href=\"#\" style=\"color: #ff6600; text-decoration: none;\">Gizlilik Politikası</a></p>\n  </footer>\n  <script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.js\"></script>\n</body>\n\n</html>";
+
+                                file_put_contents($iletisimDosya, $newContent);
+                                echo '<div class="alert alert-success mt-3">İletişim sayfası başarıyla güncellendi.</div>';
+                                $iletisimIcerik = $newContent;
                             }
-
-                            $newContent = "<?php\nsession_start();\n?>\n<!DOCTYPE html>\n<html lang=\"tr\">\n\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>" . htmlspecialchars($title) . "</title>\n  <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n  <link href=\"style.css\" rel=\"stylesheet\">\n</head>\n\n<body>\n  <?php include(\"header.php\"); ?>\n\n  <div class=\"container mt-5\">\n    <h1 class=\"text-center mb-4\">" . htmlspecialchars($heading) . "</h1>\n    <div class=\"row\">\n      <div class=\"col-md-6\">\n        <img src=\"" . htmlspecialchars($image) . "\" alt=\"Prestij Emlak\" class=\"img-fluid rounded\">\n      </div>\n      <div class=\"col-md-6\">\n        " . $paragraphsHtml . "\n      </div>\n    </div>\n    <div class=\"text-center mt-5\">\n      <h3>" . htmlspecialchars($contactHeading) . "</h3>\n      <p>\n        " . nl2br(htmlspecialchars($contactText)) . " <a href=\"" . htmlspecialchars($contactLinkHref) . "\" class=\"text-primary\">" . htmlspecialchars($contactLinkText) . "</a>\n      </p>\n    </div>\n  </div>\n  <footer>\n    <p>&copy; 2025 Prestij Emlak. Tüm hakları saklıdır.</p>\n    <p><a href=\"#\" style=\"color: #ff6600; text-decoration: none;\">İletişim</a> | <a href=\"#\" style=\"color: #ff6600; text-decoration: none;\">Gizlilik Politikası</a></p>\n  </footer>\n  <script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js\"></script>\n</body>\n\n</html>";
-
-                            file_put_contents($hakkimizdaDosya, $newContent);
-                            echo '<div class="alert alert-success mt-3">Hakkımızda sayfası başarıyla güncellendi.</div>';
-                            $hakkimizdaIcerik = $newContent;
-                        } elseif ($sayfa === 'iletisim') {
-                            $title = $_POST['title'] ?? '';
-                            $heading = $_POST['heading'] ?? '';
-                            $intro = $_POST['intro'] ?? '';
-                            $instagram = $_POST['instagram'] ?? '';
-                            $whatsapp = $_POST['whatsapp'] ?? '';
-                            $mail = $_POST['mail'] ?? '';
-
-                            $newContent = "<?php\nsession_start();\n?>\n<!DOCTYPE html>\n<html lang=\"tr\">\n\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>" . htmlspecialchars($title) . "</title>\n  <link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n  <link href=\"https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css\" rel=\"stylesheet\">\n  <link href=\"style.css\" rel=\"stylesheet\">\n  <style>\n    .contact-icons {\n      font-size: 2rem;\n      margin: 10px;\n      color: #004080;\n      transition: color 0.3s ease;\n    }\n\n    .contact-icons:hover {\n      color: #ff6600;\n    }\n\n    .contact-section {\n      text-align: center;\n      margin-top: 50px;\n    }\n\n    .contact-section h1 {\n      margin-bottom: 20px;\n    }\n\n    .contact-section p {\n      font-size: 1.2rem;\n      margin-bottom: 30px;\n    }\n  </style>\n</head>\n\n<body>\n  <?php include(\"header.php\"); ?>\n\n  <div class=\"container mt-5\">\n    <div class=\"contact-section\">\n      <h1>" . htmlspecialchars($heading) . "</h1>\n      <p>" . nl2br(htmlspecialchars($intro)) . "</p>\n      <div>\n        <!-- Instagram -->\n        <a href=\"" . htmlspecialchars($instagram) . "\" target=\"_blank\" class=\"contact-icons\">\n          <i class=\"bi bi-instagram\"></i>\n        </a>\n        <!-- WhatsApp -->\n        <a href=\"" . htmlspecialchars($whatsapp) . "\" target=\"_blank\" class=\"contact-icons\">\n          <i class=\"bi bi-whatsapp\"></i>\n        </a>\n        <!-- Mail -->\n        <a href=\"mailto:" . htmlspecialchars($mail) . "\" target=\"_blank\" class=\"contact-icons\">\n          <i class=\"bi bi-envelope\"></i>\n        </a>\n      </div>\n    </div>\n  </div>\n  <footer>\n    <p>&copy; 2025 Prestij Emlak. Tüm hakları saklıdır.</p>\n    <p><a href=\"#\" style=\"color: #ff6600; text-decoration: none;\">İletişim</a> | <a href=\"#\" style=\"color: #ff6600; text-decoration: none;\">Gizlilik Politikası</a></p>\n  </footer>\n  <script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.js\"></script>\n</body>\n\n</html>";
-
-                            file_put_contents($iletisimDosya, $newContent);
-                            echo '<div class="alert alert-success mt-3">İletişim sayfası başarıyla güncellendi.</div>';
-                            $iletisimIcerik = $newContent;
                         }
-                    }
                     ?>
 
                     <div class="row mt-4">
-                    <div class="col-md-6">
-                        <h5>Hakkımızda Sayfası</h5>
-                        <form method="POST" id="hakkimizdaForm">
-                            <input type="hidden" name="sayfa" value="hakkimizda">
-                            <input type="hidden" name="sayfa_icerik_guncelle" value="1">
-                            <div class="mb-3">
-                                <label for="title" class="form-label">Sayfa Başlığı (title)</label>
-                                <input type="text" class="form-control" id="title" name="title" value="<?php echo htmlspecialchars($hakkimizdaTitle); ?>" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="heading" class="form-label">Ana Başlık (h1)</label>
-                                <input type="text" class="form-control" id="heading" name="heading" value="<?php echo htmlspecialchars($hakkimizdaHeading); ?>" required>
-                            </div>
-                            <div id="paragraphsContainer">
-                                <?php foreach ($hakkimizdaParagraphs as $index => $paragraph): ?>
-                                    <div class="mb-3">
-                                        <label for="para<?php echo $index; ?>" class="form-label">Paragraf <?php echo $index + 1; ?></label>
-                                        <textarea class="form-control" id="para<?php echo $index; ?>" name="para[]" rows="3" required><?php echo htmlspecialchars($paragraph); ?></textarea>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                            <div class="mb-3">
-                                <label for="newParagraph" class="form-label">Yeni Paragraf Ekle</label>
-                                <textarea class="form-control" id="newParagraph" rows="3"></textarea>
-                                <button type="button" class="btn btn-secondary mt-2" id="addParagraphBtn">Paragraf Ekle</button>
-                            </div>
-                            <div class="mb-3">
-                                <label for="contactHeading" class="form-label">İletişim Başlığı (h3)</label>
-                                <input type="text" class="form-control" id="contactHeading" name="contactHeading" value="<?php echo htmlspecialchars($hakkimizdaContactHeading); ?>" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="contactText" class="form-label">İletişim Metni (bağlantı öncesi ve sonrası)</label>
-                                <textarea class="form-control" id="contactText" name="contactText" rows="2" required><?php echo htmlspecialchars($hakkimizdaContactText); ?></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label for="contactLinkText" class="form-label">İletişim Bağlantı Metni</label>
-                                <input type="text" class="form-control" id="contactLinkText" name="contactLinkText" value="<?php echo htmlspecialchars($hakkimizdaContactLinkText); ?>" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="contactLinkHref" class="form-label">İletişim Bağlantı URL</label>
-                                <input type="text" class="form-control" id="contactLinkHref" name="contactLinkHref" value="<?php echo htmlspecialchars($hakkimizdaContactLinkHref); ?>" required>
-                            </div>
-                            <button type="submit" class="btn btn-success mt-2">Güncelle</button>
-                        </form>
-                    </div>
-                    <script>
-                        document.getElementById('addParagraphBtn').addEventListener('click', function() {
-                            const newParaText = document.getElementById('newParagraph').value.trim();
-                            if (newParaText === '') {
-                                alert('Lütfen eklemek için bir paragraf yazın.');
-                                return;
-                            }
-                            const container = document.getElementById('paragraphsContainer');
-                            const paraCount = container.querySelectorAll('textarea[name="para[]"]').length;
-                            const div = document.createElement('div');
-                            div.classList.add('mb-3');
-                            div.innerHTML = `
+                        <div class="col-md-6">
+                            <h5>Hakkımızda Sayfası</h5>
+                            <form method="POST" id="hakkimizdaForm">
+                                <input type="hidden" name="sayfa" value="hakkimizda">
+                                <input type="hidden" name="sayfa_icerik_guncelle" value="1">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">Sayfa Başlığı (title)</label>
+                                    <input type="text" class="form-control" id="title" name="title" value="<?php echo htmlspecialchars($hakkimizdaTitle); ?>" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="heading" class="form-label">Ana Başlık (h1)</label>
+                                    <input type="text" class="form-control" id="heading" name="heading" value="<?php echo htmlspecialchars($hakkimizdaHeading); ?>" required>
+                                </div>
+                                <div id="paragraphsContainer">
+                                    
+                                    <?php foreach ($hakkimizdaParagraphs as $index => $paragraph): ?>
+                                        <div class="mb-3">
+                                            <label for="para<?php echo $index; ?>" class="form-label">Paragraf <?php echo $index + 1; ?></label>
+                                    <textarea class="form-control" id="para<?php echo $index; ?>" name="para[]" rows="3"><?php echo htmlspecialchars($paragraph); ?></textarea>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="newParagraph" class="form-label">Yeni Paragraf Ekle</label>
+                                    <textarea class="form-control" id="newParagraph" rows="3"></textarea>
+                                    <button type="button" class="btn btn-secondary mt-2" id="addParagraphBtn">Paragraf Ekle</button>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="contactHeading" class="form-label">İletişim Başlığı (h3)</label>
+                                    <input type="text" class="form-control" id="contactHeading" name="contactHeading" value="<?php echo htmlspecialchars($hakkimizdaContactHeading); ?>" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="contactText" class="form-label">İletişim Metni (bağlantı öncesi ve sonrası)</label>
+                                    <textarea class="form-control" id="contactText" name="contactText" rows="2" required><?php echo htmlspecialchars($hakkimizdaContactText); ?></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="contactLinkText" class="form-label">İletişim Bağlantı Metni</label>
+                                    <input type="text" class="form-control" id="contactLinkText" name="contactLinkText" value="<?php echo htmlspecialchars($hakkimizdaContactLinkText); ?>" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="contactLinkHref" class="form-label">İletişim Bağlantı URL</label>
+                                    <input type="text" class="form-control" id="contactLinkHref" name="contactLinkHref" value="<?php echo htmlspecialchars($hakkimizdaContactLinkHref); ?>" required>
+                                </div>
+                                <button type="submit" class="btn btn-success mt-2">Güncelle</button>
+                            </form>
+                        </div>
+                        <script>
+                            document.getElementById('addParagraphBtn').addEventListener('click', function() {
+                                const newParaText = document.getElementById('newParagraph').value.trim();
+                                if (newParaText === '') {
+                                    alert('Lütfen eklemek için bir paragraf yazın.');
+                                    return;
+                                }
+                                const container = document.getElementById('paragraphsContainer');
+                                const paraCount = container.querySelectorAll('textarea[name="para[]"]').length;
+                                const div = document.createElement('div');
+                                div.classList.add('mb-3');
+                                div.innerHTML = `
                                 <label for="para${paraCount}" class="form-label">Paragraf ${paraCount + 1}</label>
                                 <textarea class="form-control" id="para${paraCount}" name="para[]" rows="3" required>${newParaText}</textarea>
                             `;
-                            container.appendChild(div);
-                            document.getElementById('newParagraph').value = '';
-                        });
-                    </script>
+                                container.appendChild(div);
+                                document.getElementById('newParagraph').value = '';
+                            });
+                        </script>
                         <div class="col-md-6">
                             <h5>İletişim Sayfası</h5>
                             <form method="POST">

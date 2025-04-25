@@ -16,27 +16,25 @@ session_start();
   <?php include("header.php"); ?>
 
   <div class="container mt-5">
-    <h1 class="text-center mb-4">Hakkımızda</h1>
+    <h1 class="text-center mb-4">Hakkımızda - Prestij Emlak</h1>
     <div class="row">
-      <div class="col-md-6">
-        <p>
-          Prestij Emlak olarak, üyelerimize en iyi hizmeti sunmayı ve hayallerindeki evi bulmalarına yardımcı olmayı misyon edindik.
-          Yılların tecrübesiyle, güvenilir ve profesyonel bir emlak platformu olarak sektördeki yerimizi sağlamlaştırdık.
+      <div class="col-md-6 mx-auto mb-4">
+        <p> Prestij Emlak olarak, üyelerimize en iyi hizmeti sunmayı ve hayallerindeki evi bulmalarına yardımcı olmayı misyon edindik.<br />
+          Yılların tecrübesiyle, güvenilir ve profesyonel bir emlak platformu olarak sektördeki yerimizi sağlamlaştırdık.<br />
         </p>
-        <p>
-          Üyelerimizin memnuniyeti bizim için her zaman önceliklidir. Bu nedenle, geniş ilan portföyümüz ve kullanıcı dostu platformumuzla
-          her ihtiyaca uygun çözümler sunuyoruz. İster satılık ister kiralık bir ev arıyor olun, Prestij Emlak sizin yanınızda.
+<p> Üyelerimizin memnuniyeti bizim için her zaman önceliklidir. Bu nedenle, geniş ilan portföyümüz ve kullanıcı dostu platformumuzla<br />
+          her ihtiyaca uygun çözümler sunuyoruz. İster satılık ister kiralık bir ev arıyor olun, Prestij Emlak sizin yanınızda.<br />
         </p>
-        <p>
-          Ekibimiz, dürüstlük ve şeffaflık ilkeleriyle çalışarak, üyelerimize en iyi deneyimi sunmayı taahhüt eder.
-          Hayalinizdeki evi bulmak için doğru adrestesiniz!
+<p> Ekibimiz, dürüstlük ve şeffaflık ilkeleriyle çalışarak, üyelerimize en iyi deneyimi sunmayı taahhüt eder.<br />
+          Hayalinizdeki evi bulmak için doğru adrestesiniz!<br />
         </p>
+
       </div>
     </div>
     <div class="text-center mt-5">
       <h3>Bizimle İletişime Geçin</h3>
       <p>
-        Daha fazla bilgi almak veya sorularınızı sormak için <a href="iletisim.php" class="text-primary">iletişim</a> sayfamızı ziyaret edebilirsiniz.
+        Daha fazla bilgi almak veya sorularınızı sormak için sayfamızı ziyaret edebilirsiniz. <a href="iletisim.php" class="text-primary">iletişim</a>
       </p>
     </div>
   </div>
