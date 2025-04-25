@@ -25,3 +25,5 @@
 // Profil hariç diğer sayfalar düzenlendi (footer için ayrı bir sayfa oluşturulabilir)
 // ilan ekleme sayfası yapılacak, ilanlar sayfasına veri tabanından ilanlar getirilecek
 // profil sayfası komple ayarlanacak (farklı başlıklara ayrılabilir)
+
+ilan duzenleme eklenecek, hakkimizda sayfasi için paragraflar getirilecek 
