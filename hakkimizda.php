@@ -19,9 +19,6 @@ session_start();
     <h1 class="text-center mb-4">Hakkımızda</h1>
     <div class="row">
       <div class="col-md-6">
-        <img src="https://via.placeholder.com/600x400" alt="Prestij Emlak" class="img-fluid rounded">
-      </div>
-      <div class="col-md-6">
         <p>
           Prestij Emlak olarak, üyelerimize en iyi hizmeti sunmayı ve hayallerindeki evi bulmalarına yardımcı olmayı misyon edindik.
           Yılların tecrübesiyle, güvenilir ve profesyonel bir emlak platformu olarak sektördeki yerimizi sağlamlaştırdık.

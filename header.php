@@ -12,13 +12,27 @@
                     <li>
                         <div class="dropdown">
                             <button class="btn dropdown-toggle" type="button" style="color: white; background-color: #004080; border: none;" data-bs-toggle="dropdown" aria-expanded="false">
-                                <?php echo htmlspecialchars($_SESSION['uyeAd']); ?> (<?php echo htmlspecialchars($_SESSION['uyeMail']); ?>)
+                                <?php 
+                                    // Verileri oturumdan değil, veritabanından çek
+                                    require_once 'ayar.php'; // Veritabanı bağlantısı
+                                    $stmt = $baglan->prepare("SELECT uyeAd, uyeMail FROM t_uyeler WHERE uyeID = ?");
+                                    $stmt->bind_param("i", $_SESSION['uyeID']);
+                                    $stmt->execute();
+                                    $result = $stmt->get_result();
+                                    $user = $result->fetch_assoc();
+
+                                    if ($user) {
+                                        echo htmlspecialchars($user['uyeAd']) . " (" . htmlspecialchars($user['uyeMail']) . ")";
+                                    } else {
+                                        echo "Kullanıcı Bilgisi Bulunamadı";
+                                    }
+                                ?>
                             </button>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="profil.php">Profil</a></li>
-                                <li><a class="dropdown-item" href="favoriler.php">Favoriler</a></li>
-                                <li><a class="dropdown-item" href="mesajlar.php">Mesajlar</a></li>
-                                <li><a class="dropdown-item text-danger" href="cikisYap.php">Çıkış Yap</a></li>
+                                <li><a class="dropdown-item" id="favorilerButton">Favoriler</a></li>
+                                <li><a class="dropdown-item" id="mesajlarButton">Mesajlar</a></li>
+                                <li><a class="dropdown-item text-danger" id="cikisYapButton" href="#">Çıkış Yap</a></li>
                             </ul>
                         </div>
                     </li>
@@ -30,3 +44,24 @@
         </nav>
     </div>
 </header>
+
+<script type="text/javascript">
+    document.getElementById("mesajlarButton").onclick = function() {
+        // Profil sayfasına yönlendir ve bir parametre ekle
+        location.href = "profil.php?tab=mesajlar";
+    };
+
+    document.getElementById("favorilerButton").onclick = function() {
+        // Profil sayfasına yönlendir ve bir parametre ekle
+        location.href = "profil.php?tab=favoriler";
+    };
+
+    document.getElementById("cikisYapButton").onclick = function(event) {
+        // Çıkış yapmadan önce kullanıcıdan onay al
+        event.preventDefault(); // Varsayılan bağlantıyı engelle
+        const confirmLogout = confirm("Çıkış yapmak istediğinize emin misiniz?");
+        if (confirmLogout) {
+            location.href = "cikisYap.php"; // Çıkış yap
+        }
+    };
+</script>

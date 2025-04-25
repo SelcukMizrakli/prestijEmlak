@@ -78,16 +78,51 @@ if ($loggedIn) {
       $ilanID = $row['ilanID'];
       $resimYolu = $row['resimYolu'] ?? 'https://via.placeholder.com/300x200'; // Varsayılan resim
       $ilanBaslik = $row['ilanBaslik'] ?? 'Başlık bulunamadı'; // Varsayılan başlık
-      $ilanAciklama = $row['ilanDAciklama'] ?? 'Açıklama bulunamadı'; // Varsayılan açıklama
       $ilanFiyat = $row['ilanDFiyat'] ?? 'Fiyat belirtilmemiş'; // Varsayılan fiyat
+
+      // Additional details from ilanlar.php query for display
+      // We need to fetch ilan details similar to ilanlar.php for consistent display
+      // So we will do a separate query to get ilan details for each ilanID or join in main query
+
+      // To keep it simple, let's modify the main query to include the additional fields from ilanlar.php:
+      // ilanDmetreKareBrut, ilanDOdaSayisi, ilanDKonumBilgisi, ilanDMulkTuru, adresSehir, adresIlce
+
+      // But since we cannot modify the query here, let's do a separate query for each ilanID to get these details
+
+      $detailsSql = "SELECT 
+                      id.ilanDAciklama,
+                      id.ilanDFiyat,
+                      id.ilanDmetreKareBrut,
+                      id.ilanDOdaSayisi,
+                      id.ilanDKonumBilgisi,
+                      id.ilanDMulkTuru,
+                      a.adresSehir,
+                      a.adresIlce
+                    FROM t_ilandetay id
+                    JOIN t_ilanlar il ON il.ilanID = id.ilanDilanID
+                    JOIN t_adresler a ON il.ilanAdresID = a.adresID
+                    WHERE il.ilanID = " . intval($ilanID);
+
+      $detailsResult = $baglan->query($detailsSql);
+      $details = $detailsResult->fetch_assoc();
+
+      $ilanAciklama = htmlspecialchars($details['ilanDAciklama'] ?? 'Açıklama bulunamadı');
+      $ilanMetrekare = htmlspecialchars($details['ilanDmetreKareBrut'] ?? '');
+      $ilanOdaSayisi = htmlspecialchars($details['ilanDOdaSayisi'] ?? '');
+      $ilanKonum = htmlspecialchars($details['ilanDKonumBilgisi'] ?? '');
+      $ilanMulkTuru = htmlspecialchars($details['ilanDMulkTuru'] ?? '');
+      $ilanSehir = htmlspecialchars($details['adresSehir'] ?? '');
+      $ilanIlce = htmlspecialchars($details['adresIlce'] ?? '');
+      $ilanFiyatFormatted = number_format($ilanFiyat, 2);
 
       echo '<a href="ilanDetay.php?id=' . htmlspecialchars($ilanID) . '" style="text-decoration: none; color: inherit;">';
       echo '<div class="listing-card">';
       echo '<img src="' . htmlspecialchars($resimYolu) . '" alt="İlan Resmi">';
       echo '<div class="card-content">';
-      echo '<h3>' . htmlspecialchars($ilanBaslik) . '</h3>';
-      echo '<p>' . htmlspecialchars($ilanAciklama) . '</p>';
-      echo '<p><strong>Fiyat:</strong> ' . htmlspecialchars($ilanFiyat) . ' TL</p>';
+      echo '<h3>' . htmlspecialchars($ilanMulkTuru) . '</h3>';
+      echo '<p>' . $ilanOdaSayisi . ' Oda, ' . $ilanMetrekare . ' m²</p>';
+      echo '<p>' . $ilanSehir . ' / ' . $ilanIlce . '</p>';
+      echo '<p><strong>Fiyat:</strong> ' . $ilanFiyatFormatted . ' TL</p>';
       echo '</div>';
       echo '</div>';
       echo '</a>';
