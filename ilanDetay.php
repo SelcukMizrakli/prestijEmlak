@@ -19,39 +19,41 @@ if (isset($_GET['id'])) {
 
 // İlan bilgilerini al
 $sorgu = $baglan->prepare("SELECT 
-                            uye.uyeSoyad,
-                            uye.uyeTelNo,
-                            id.ilanDAciklama,
-                            id.ilanDFiyat,
-                            id.ilanDmetreKareBrut,
-                            id.ilanDmetreKareNet,
-                            id.ilanDOdaSayisi,
-                            id.ilanDBinaYasi,
-                            id.ilanDSiteIcerisindeMi,
-                            id.ilanDMulkTuru,
-                            id.ilanDKonumBilgisi,
-                            id.ilanDIsitmaTipi,
-                            id.ilanDBulunduguKatSayisi,
-                            id.ilanDBinaKatSayisi,
-                            id.ilanDIlanTurID,
-                            mt.mulkTipiBaslik,
-                            it.ilanTurAdi,
-                            a.adresBaslik,
-                            a.adresMahalle,
-                            a.adresIlce,
-                            a.adresSehir,
-                            a.adresUlke,
-                            a.adresPostaKodu,
-                            GROUP_CONCAT(r.resimUrl) as resimler
-                          FROM t_ilandetay id
-                          JOIN t_ilanlar il ON id.ilanDilanID = il.ilanID
-                          JOIN t_mulktipi mt ON id.ilanDMulkTipiID = mt.mulkTipID
-                          JOIN t_ilantur it ON id.ilanDIlanTurID = it.ilanTurID
-                          JOIN t_adresler a ON il.ilanAdresID = a.adresID
-                            JOIN t_uyeler uye ON il.ilanUyeID = uye.uyeID
-                          LEFT JOIN t_resimler r ON il.ilanID = r.resimIlanID
-                          WHERE il.ilanID = ?
-                          GROUP BY il.ilanID");
+    il.ilanID,
+    uye.uyeAd,
+    uye.uyeSoyad,
+    uye.uyeTelNo,
+    uye.uyeMail,
+    id.ilanDAciklama,
+    id.ilanDFiyat,
+    id.ilanDmetreKareBrut,
+    id.ilanDmetreKareNet,
+    id.ilanDOdaSayisi,
+    id.ilanDBinaYasi,
+    id.ilanDSiteIcerisindeMi,
+    id.ilanDMulkTuru,
+    id.ilanDKonumBilgisi,
+    id.ilanDIsitmaTipi,
+    id.ilanDBulunduguKatSayisi,
+    id.ilanDBinaKatSayisi,
+    mt.mulkTipiBaslik,
+    it.ilanTurAdi,
+    a.adresBaslik,
+    a.adresMahalle,
+    a.adresIlce,
+    a.adresSehir,
+    a.adresUlke,
+    a.adresPostaKodu,
+    GROUP_CONCAT(r.resimUrl) as resimler
+FROM t_ilanlar il
+JOIN t_ilandetay id ON il.ilanID = id.ilanDilanID
+JOIN t_mulktipi mt ON id.ilanDMulkTipiID = mt.mulkTipID
+JOIN t_ilantur it ON id.ilanDIlanTurID = it.ilanTurID
+JOIN t_adresler a ON il.ilanAdresID = a.adresID
+JOIN t_uyeler uye ON il.ilanUyeID = uye.uyeID
+LEFT JOIN t_resimler r ON il.ilanID = r.resimIlanID
+WHERE il.ilanID = ?
+GROUP BY il.ilanID");
 $sorgu->bind_param("i", $ilanID);
 $sorgu->execute();
 $result = $sorgu->get_result();
@@ -84,8 +86,23 @@ $adresPostaKodu = $ilan->adresPostaKodu ?? 'Belirtilmemiş';
 $kullaniciSoyadi = $ilan->uyeSoyad ?? 'Belirtilmemiş';
 $kullaniciTelefon = $ilan->uyeTelNo ?? 'Belirtilmemiş';
 $ilanAciklama = $ilan->ilanDAciklama ?? 'Açıklama bulunamadı';
+$ilanVerenAd = $ilan->uyeAd ?? 'Belirtilmemiş';
+$ilanVerenSoyad = $ilan->uyeSoyad ?? 'Belirtilmemiş';
+$ilanVerenTelefon = $ilan->uyeTelNo ?? 'Belirtilmemiş';
+$ilanVerenEmail = $ilan->uyeMail ?? 'Belirtilmemiş';
 // Resimleri ayır
 $resimler = isset($ilan->resimler) && $ilan->resimler !== null ? explode(',', $ilan->resimler) : [];
+
+// Favori durumu kontrolü
+$favoriDurumu = false;
+if ($loggedIn) {
+    $favoriSorgu = $baglan->prepare("SELECT favoriID FROM t_favoriler 
+        WHERE favoriUyeID = ? AND favoriIlanID = ? ");
+    $favoriSorgu->bind_param("ii", $_SESSION['uyeID'], $ilanID);
+    $favoriSorgu->execute();
+    $favoriSonuc = $favoriSorgu->get_result();
+    $favoriDurumu = $favoriSonuc->num_rows > 0;
+}
 
 ?>
 
@@ -98,6 +115,7 @@ $resimler = isset($ilan->resimler) && $ilan->resimler !== null ? explode(',', $i
     <title>Prestij Emlak - İlan Detay</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="style.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 
 <body>
@@ -117,6 +135,11 @@ $resimler = isset($ilan->resimler) && $ilan->resimler !== null ? explode(',', $i
             <div class="row">
                 <div class="col-md-6 ">
                     <h3>İlan Bilgileri</h3>
+                    <?php if ($loggedIn): ?>
+                        <button id="favoriButton" class="btn <?php echo $favoriDurumu ? 'btn-danger' : 'btn-outline-danger'; ?> mb-3" onclick="favoriEkle(<?php echo $ilanID; ?>)">
+                            <i class="fas fa-heart"></i> <?php echo $favoriDurumu ? 'Favorilerden Çıkar' : 'Favorilere Ekle'; ?>
+                        </button>
+                    <?php endif; ?>
                     <ul class="list-group">
                         <li class="list-group-item"><strong>Fiyat:</strong> <?php echo number_format($fiyat, 2); ?> TL</li>
                         <li class="list-group-item"><strong>Metrekare (Brüt):</strong> <?php echo $metreKareBrut; ?> m²</li>
@@ -133,13 +156,23 @@ $resimler = isset($ilan->resimler) && $ilan->resimler !== null ? explode(',', $i
                         <li class="list-group-item"><strong>Açıklama:</strong> <?php echo $ilanAciklama; ?></li>
                     </ul>
                 </div>
-                <div class="col-md-6 ">
+                <div class="col-md-6">
                     <h3>İlan Veren Bilgileri</h3>
                     <ul class="list-group">
-                        <li class="list-group-item"><strong>Ad Soyad:</strong> <?php echo htmlspecialchars($kullaniciAdi ?? 'Belirtilmemiş');
-                                                                                echo htmlspecialchars(" " . $kullaniciSoyadi ?? 'Belirtilmemiş'); ?></li>
-                        <li class="list-group-item"><strong>Telefon:</strong> <?php echo htmlspecialchars($kullaniciTelefon ?? 'Belirtilmemiş'); ?></li>
-                    </ul> <br><br>
+                        <li class="list-group-item">
+                            <strong>Ad Soyad:</strong> 
+                            <?php echo htmlspecialchars($ilanVerenAd . ' ' . $ilanVerenSoyad); ?>
+                        </li>
+                        <li class="list-group-item">
+                            <strong>Telefon:</strong> 
+                            <?php echo htmlspecialchars($ilanVerenTelefon); ?>
+                        </li>
+                        <li class="list-group-item">
+                            <strong>E-posta:</strong> 
+                            <?php echo htmlspecialchars($ilanVerenEmail); ?>
+                        </li>
+                    </ul>
+                    <br><br>
                     <h3>Adres Bilgileri</h3>
                     <ul class="list-group">
                         <li class="list-group-item">
@@ -185,6 +218,39 @@ $resimler = isset($ilan->resimler) && $ilan->resimler !== null ? explode(',', $i
         function changeImage(direction) {
             currentIndex = (currentIndex + direction + images.length) % images.length;
             document.getElementById('currentImage').src = images[currentIndex];
+        }
+
+        function favoriEkle(ilanID) {
+            // Form verisi oluştur
+            const formData = new FormData();
+            formData.append('ilanID', ilanID);
+
+            fetch('favoriEkle.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const favoriButton = document.getElementById('favoriButton');
+                    if (data.action === 'added') {
+                        favoriButton.classList.remove('btn-outline-danger');
+                        favoriButton.classList.add('btn-danger');
+                        favoriButton.innerHTML = '<i class="fas fa-heart"></i> Favorilerden Çıkar';
+                    } else {
+                        favoriButton.classList.remove('btn-danger');
+                        favoriButton.classList.add('btn-outline-danger');
+                        favoriButton.innerHTML = '<i class="fas fa-heart"></i> Favorilere Ekle';
+                    }
+                    alert(data.message);
+                } else {
+                    alert('Bir hata oluştu: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Hata:', error);
+                alert('Bir hata oluştu!');
+            });
         }
     </script>
 </body>

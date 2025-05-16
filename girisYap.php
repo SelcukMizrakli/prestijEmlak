@@ -81,10 +81,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       // Şifreyi hash'le
       $hashed_password = password_hash($password, PASSWORD_DEFAULT);
       // Kullanıcıyı veritabanına ekle
-      $stmt = $baglan->prepare("INSERT INTO t_uyeler (uyeAd, uyeSoyad, uyeTelNo, uyeMail, uyeSifre, uyeAdresID, uyeYetkiID) VALUES (?, ?, ?, ?, ?,?,?)");
+      $stmt = $baglan->prepare("INSERT INTO t_uyeler (uyeAd, uyeSoyad, uyeTelNo, uyeMail, uyeSifre, uyeAdresID, uyeYetkiID, uyeAktiflikDurumu) VALUES (?, ?, ?, ?, ?,?,?,?)");
       $null = null;
-      $defaultYetki = 1;
-      $stmt->bind_param("sssssii", $ad, $soyad, $telNo, $email, $hashed_password, $null, $defaultYetki);
+      $defaultYetki = 2;
+      $defaultAktiflik = 1; // Varsayılan aktiflik durumu
+      $stmt->bind_param("sssssiii", $ad, $soyad, $telNo, $email, $hashed_password, $null, $defaultYetki, $defaultAktiflik);
 
       if ($stmt->execute()) {
         // Kayıt başarılı, session bilgilerini oluştur
@@ -93,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $_SESSION["uyeAd"] = $ad;
         $_SESSION["uyeMail"] = $email;
         // Varsayılan yetki değeri (örneğin 0) atanabilir
-        $_SESSION["uyeYetki"] = 0;
+        $_SESSION["uyeYetki"] = 2;
 
         echo "<script>
                         alert('Kayıt başarılı!');

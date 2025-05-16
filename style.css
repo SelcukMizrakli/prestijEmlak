@@ -92,7 +92,12 @@ nav ul li a:hover {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
+  gap: 15px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  position: relative;
+  z-index: 2;
 }
 
 .search-form input,
@@ -102,6 +107,25 @@ nav ul li a:hover {
   border: none;
   border-radius: 4px;
   min-width: 150px;
+}
+
+.search-form select,
+.search-form input {
+  flex: 1;
+  min-width: 200px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #333;
+  font-size: 14px;
+}
+
+.search-form select:focus,
+.search-form input:focus {
+  outline: none;
+  border-color: #ff6600;
+  box-shadow: 0 0 5px rgba(255, 102, 0, 0.3);
 }
 
 .search-form button {
@@ -116,6 +140,41 @@ nav ul li a:hover {
   transition: background-color 0.3s ease;
 }
 
+.search-form button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.search-form button[type="submit"] {
+  background-color: #ff6600;
+  color: white;
+}
+
+.search-form button[type="submit"]:hover {
+  background-color: #e65c00;
+}
+
+.search-form button[type="reset"] {
+  background-color: #6c757d;
+  color: white;
+}
+
+.search-form button[type="reset"]:hover {
+  background-color: #5a6268;
+}
+
+.search-form button.btn-primary {
+  background-color: #004080;
+}
+
+.search-form button.btn-primary:hover {
+  background-color: #003366;
+}
+
 .search-form button:hover {
   background-color: #004080;
 }
@@ -124,12 +183,17 @@ nav ul li a:hover {
   max-width: 1200px;
   margin: 40px auto;
   padding: 0 20px;
+  padding: 40px 20px;
 }
 
 .listing-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 30px;
+  margin-top: 30px;
 }
 
 .listing-card {
@@ -138,21 +202,35 @@ nav ul li a:hover {
   overflow: hidden;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .listing-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-5px);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
 }
 
 .listing-card img {
   width: 100%;
   height: 180px;
   object-fit: cover;
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
 }
 
 .listing-card .card-content {
   padding: 15px;
+}
+
+.card-content {
+  padding: 20px;
 }
 
 .listing-card .card-content h3 {
@@ -161,9 +239,25 @@ nav ul li a:hover {
   color: #004080;
 }
 
+.card-content h3 {
+  color: #004080;
+  margin-bottom: 10px;
+  font-size: 1.2em;
+}
+
 .listing-card .card-content p {
   font-size: 0.9em;
   color: #555;
+}
+
+.card-content p {
+  color: #666;
+  margin-bottom: 8px;
+  font-size: 0.9em;
+}
+
+.card-content p strong {
+  color: #ff6600;
 }
 
 footer {
@@ -200,6 +294,20 @@ footer a:hover {
 
   nav ul li {
     margin: 5px 0;
+  }
+
+  .search-form {
+    padding: 15px;
+  }
+
+  .search-form select,
+  .search-form input {
+    min-width: 100%;
+  }
+
+  .search-form button {
+    width: 100%;
+    margin-top: 10px;
   }
 }
 

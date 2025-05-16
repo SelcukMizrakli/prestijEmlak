@@ -257,12 +257,21 @@ if (!$kullanici) {
                 <div class="row">
                     <?php
                     $query = $baglan->prepare("
-                        SELECT id.ilanDFiyat, id.ilanDMulkTuru, id.ilanDKonumBilgisi, r.resimUrl
+                        SELECT 
+                            i.ilanID,
+                            id.ilanDFiyat, 
+                            id.ilanDMulkTuru, 
+                            id.ilanDKonumBilgisi, 
+                            r.resimUrl
                         FROM t_favoriler f
+                        JOIN t_ilanlar i ON f.favoriIlanID = i.ilanID
                         JOIN t_ilandetay id ON f.favoriIlanID = id.ilanDilanID
                         LEFT JOIN t_resimler r ON f.favoriIlanID = r.resimIlanID AND r.resimDurum = 1
-                        WHERE f.favoriUyeID = ?
+                        WHERE f.favoriUyeID = ? 
+                        AND f.favoriDurum = 1
+                        GROUP BY i.ilanID
                     ");
+                    
                     $query->bind_param("i", $kullaniciID);
                     $query->execute();
                     $result = $query->get_result();
@@ -271,14 +280,18 @@ if (!$kullanici) {
                         while ($row = $result->fetch_assoc()) {
                             $resim = $row['resimUrl'] ?: 'default.jpg'; // Resim yoksa varsayılan resim
                             echo '
-                                <div class="col-md-4">
-                                    <div class="card">
-                                        <img src="' . htmlspecialchars($resim) . '" class="card-img-top" alt="İlan Resmi">
-                                        <div class="card-body">
-                                            <h5 class="card-title">' . htmlspecialchars($row['ilanDMulkTuru']) . '</h5>
-                                            <p class="card-text"><strong>Fiyat:</strong> ' . number_format($row['ilanDFiyat'], 2) . ' TL</p>
-                                            <p class="card-text"><strong>Konum:</strong> ' . htmlspecialchars($row['ilanDKonumBilgisi']) . '</p>
-                                        </div>
+                                <div class="col-md-4 mb-4">
+                                    <div class="card h-100">
+                                        <a href="ilanDetay.php?id=' . $row['ilanID'] . '" class="text-decoration-none">
+                                            <img src="' . htmlspecialchars($resim) . '" class="card-img-top" alt="İlan Resmi" style="height: 200px; object-fit: cover;">
+                                            <div class="card-body">
+                                                <h5 class="card-title text-dark">' . htmlspecialchars($row['ilanDMulkTuru']) . '</h5>
+                                                <p class="card-text text-dark">
+                                                    <strong>Fiyat:</strong> ' . number_format($row['ilanDFiyat'], 2) . ' TL<br>
+                                                    <strong>Konum:</strong> ' . htmlspecialchars($row['ilanDKonumBilgisi']) . '
+                                                </p>
+                                            </div>
+                                        </a>
                                     </div>
                                 </div>
                             ';

@@ -29,3 +29,32 @@
 yönetim paneli kısmındaki üye listesi daha düzenli hale getirilecek, yalnızca 3 üye görünecek diğer üyeler filtrelemeyle görüntülenecek
 uye aktiflik durumu 0 olan uyeler giris yapamayacak
 uye kayit sirasinda aktiflik durumunu 1 olarak atayacagiz.
+
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Veri Tabanı Tabloları ve Sütunları:
+        t_adresler      : adresID, adresBaslik, adresMahalle, adresIlce, adresSehir, adresUlke, adresPostaKodu, adresEklenmeTarihi, adresGuncellenmeTarihi, adresSilinmeTarihi
+        t_favoriler     : favoriID, favoriUyeID, favoriIlanID, favoriDurum (0: pasif, 1: aktif), favoriEklenmeTarihi, favoriSilinmeTarihi
+        t_ilandetay     : ilanDID, ilanDilanID, ilanDAciklama, ilanDFiyat, ilanDmetreKareBrut, ilanDmetreKareNet, ilanDOdaSayisi, ilanDBinaYasi, ilanDSiteIcerisindeMi (0: hayir, 1: evet),
+                               ilanDMulkTipiID, ilanDMulkTuru (ev, daire, ofis), ilanDKonumBilgisi, ilanDIsitmaTipi, ilanDBulunduguKatSayisi, ilanDBinaKatSayisi, ilanDIlanTurID
+        t_ilanlar       : ilanID, ilanUyeID, ilanAdresID, ilanDurum (0:aktif, 1:pasif, 2:satildi, 3:kiralandi), ilanYayinTarihi, ilanGuncellenmeTarihi, ilanSilinmeTarihi
+        t_ilantur       : ilanTurID, ilanTurAdi
+        t_istatistik    : istatistikID, istatistikIlanID, istatistikGoruntulenmeSayisi, istatistikFavoriSayisi, istatistikMesajSayisi, istatistikSonGuncellenmeTarihi
+        t_konusmalar    : konusmaID, konusmaIlanID, konusmaBaslangicTarihi, konusmaGuncellenmeTarihi
+        t_mesajlar      : mesajID, mesajIletenID, mesajAlanID, mesajText, mesajKonusmaID, mesajOkunduDurumu (0:görüntülenmedi, 1:Görüldü), mesajGonderilmeTarihi
+        t_mulktipi      : mulkTipiID, mulkTipiBaslik
+        t_resimler      : resimID, resimIlanID, resimBaslik, resimUrl, resimDurum (0: Pasif, 1: Aktif), resimEklenmeTarihi, resimGuncellenmeTarihi, resimSilinmeTarihi
+        t_uyeler        : uyeID, uyeAd, uyeSoyad, uyeAdresID, uyeMail, uyeSifre, uyeTelNo, uyeYetkiID (1: Admin, 2: Üye, 3: Şirket (t_yetki tablosundan çekiyoruz)), uyeAktiflikDurumu (0: pasif, 1: aktif), uyeKayitTarihi, uyeGuncellemeTarihi, uyeSilinmeTarihi
+        t_yetki          : yetkiID, yetkiAdi, yetkiOlusturmaTarihi, yetkiGuncellenmeTarihi
+
+
+
+ilandetay sayfasındaki favorilere ekleme ve çıkarma butonu favoridurum değerine göre değişecek
+
+profildeki favorilerim kısmı düzeltilecek (ilana tıklanabilecek ve tekrarlar iptal edilecek, favorilerden çıkarma eklenecek)
+
+kullanıcı profil detay sayfası çalışacak
+
+mesajlar kısmı çalışacak
+
+ilan eklerken ilan tür tablosuna yeni veri ekleme hatası düzeltilecek (satılık değeri tekrarlanıyor ya da kiralık...)
