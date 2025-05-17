@@ -22,15 +22,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $sorgu = $stmt->get_result();
 
     if ($sorgu->num_rows > 0) {
-      $user = $sorgu->fetch_assoc();
+      $kullanici = $sorgu->fetch_assoc();
       // Girilen şifreyi kontrol ediyoruz (şifreler hash'lenmiş olmalı)
-      if (password_verify($sifre, $user['uyeSifre'])) {
+      if (password_verify($sifre, $kullanici['uyeSifre'])) {
         // Giriş başarılı: Session değişkenlerini ayarla
-        $_SESSION["giris"] = sha1(md5("var"));
-        $_SESSION["uyeAd"] = $user["uyeAd"];
-        $_SESSION["uyeMail"] = $user["uyeMail"];
-        $_SESSION["uyeYetki"] = $user["uyeYetki"];
-        $_SESSION["uyeID"] = $user["uyeID"];
+        $_SESSION["giris"] = true;
+        $_SESSION["uyeID"] = $kullanici["uyeID"];
+        $_SESSION["uyeAd"] = $kullanici["uyeAd"];
+        $_SESSION["uyeMail"] = $kullanici["uyeMail"];
+        $_SESSION["uyeYetkiID"] = $kullanici["uyeYetkiID"]; // uyeYetki yerine uyeYetkiID kullan
 
         // İsteğe bağlı: Çerez oluşturma
         setcookie("kullanici", "msb", time() + 3600, "/");

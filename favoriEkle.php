@@ -2,97 +2,93 @@
 session_start();
 include("ayar.php");
 
-// Kullanıcı girişi kontrolü
-if (!isset($_SESSION['giris']) || !isset($_SESSION['uyeID'])) {
-    echo json_encode([
-        'success' => false, 
-        'message' => 'Lütfen önce giriş yapın'
-    ]);
-    exit;
-}
+// JSON header'ı ekle
+header('Content-Type: application/json');
 
-// POST verisi kontrolü
-if (!isset($_POST['ilanID'])) {
-    echo json_encode([
-        'success' => false, 
-        'message' => 'İlan ID bulunamadı'
-    ]);
-    exit;
-}
+// Hata raporlamayı aç
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
-$ilanID = intval($_POST['ilanID']);
-$uyeID = intval($_SESSION['uyeID']);
-
-// İlanın var olup olmadığını kontrol et
-$ilanKontrol = $baglan->prepare("SELECT ilanID FROM t_ilanlar WHERE ilanID = ? AND ilanDurum = 1");
-$ilanKontrol->bind_param("i", $ilanID);
-$ilanKontrol->execute();
-$ilanSonuc = $ilanKontrol->get_result();
-
-if ($ilanSonuc->num_rows === 0) {
-    echo json_encode([
-        'success' => false, 
-        'message' => 'İlan bulunamadı veya aktif değil'
-    ]);
-    exit;
-}
-
-// Favori kontrolü
-$kontrolSorgu = $baglan->prepare("SELECT favoriID, favoriDurum FROM t_favoriler 
-    WHERE favoriUyeID = ? AND favoriIlanID = ?");
-$kontrolSorgu->bind_param("ii", $uyeID, $ilanID);
-$kontrolSorgu->execute();
-$result = $kontrolSorgu->get_result();
-$favori = $result->fetch_assoc();
-
-if ($result->num_rows > 0 && $favori['favoriDurum'] == 1) {
-    // Favoriden çıkar (favoriDurum = 0 yap)
-    $simdikiZaman = date('Y-m-d H:i:s');
-    $silmeSorgu = $baglan->prepare("UPDATE t_favoriler 
-        SET favoriDurum = 0, favoriSilinmeTarihi = ? 
-        WHERE favoriID = ?");
-    $silmeSorgu->bind_param("si", $simdikiZaman, $favori['favoriID']);
-    
-    if ($silmeSorgu->execute()) {
-        echo json_encode([
-            'success' => true,
-            'action' => 'removed',
-            'message' => 'İlan favorilerden kaldırıldı'
-        ]);
-    } else {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Favori kaldırılırken bir hata oluştu'
-        ]);
+try {
+    // Oturum kontrolü
+    if (!isset($_SESSION['giris']) || !$_SESSION['giris']) {
+        throw new Exception('Lütfen önce giriş yapın.');
     }
-} else {
-    // Eğer daha önce eklenmiş ama silinmiş bir favori varsa, onu aktif et
+
+    // POST verisi kontrolü
+    if (!isset($_POST['ilanID'])) {
+        throw new Exception('İlan ID bulunamadı.');
+    }
+
+    $ilanID = intval($_POST['ilanID']);
+    $uyeID = $_SESSION['uyeID'];
+
+    $baglan->begin_transaction();
+
+    // Mevcut favori durumunu kontrol et
+    $kontrolSorgu = $baglan->prepare("SELECT favoriID, favoriDurum FROM t_favoriler WHERE favoriUyeID = ? AND favoriIlanID = ?");
+    $kontrolSorgu->bind_param("ii", $uyeID, $ilanID);
+    $kontrolSorgu->execute();
+    $result = $kontrolSorgu->get_result();
+
     if ($result->num_rows > 0) {
-        $guncellemeSorgu = $baglan->prepare("UPDATE t_favoriler 
-            SET favoriDurum = 1, favoriSilinmeTarihi = NULL, favoriEklenmeTarihi = NOW() 
-            WHERE favoriID = ?");
-        $guncellemeSorgu->bind_param("i", $favori['favoriID']);
-        $isSuccessful = $guncellemeSorgu->execute();
+        $favori = $result->fetch_assoc();
+        $yeniDurum = $favori['favoriDurum'] == 1 ? 0 : 1;
+        
+        $guncelleSorgu = $baglan->prepare("UPDATE t_favoriler SET favoriDurum = ? WHERE favoriID = ?");
+        $guncelleSorgu->bind_param("ii", $yeniDurum, $favori['favoriID']);
+        $guncelleSorgu->execute();
+
+        $message = $yeniDurum == 1 ? 'İlan favorilere eklendi.' : 'İlan favorilerden çıkarıldı.';
+        $action = $yeniDurum == 1 ? 'added' : 'removed';
     } else {
-        // Yeni favori ekle
-        $eklemeSorgu = $baglan->prepare("INSERT INTO t_favoriler 
-            (favoriUyeID, favoriIlanID, favoriDurum, favoriEklenmeTarihi) 
-            VALUES (?, ?, 1, NOW())");
-        $eklemeSorgu->bind_param("ii", $uyeID, $ilanID);
-        $isSuccessful = $eklemeSorgu->execute();
+        $ekleSorgu = $baglan->prepare("INSERT INTO t_favoriler (favoriUyeID, favoriIlanID, favoriDurum, favoriEklenmeTarihi) VALUES (?, ?, 1, NOW())");
+        $ekleSorgu->bind_param("ii", $uyeID, $ilanID);
+        $ekleSorgu->execute();
+
+        $message = 'İlan favorilere eklendi.';
+        $action = 'added';
     }
-    
-    if ($isSuccessful) {
-        echo json_encode([
-            'success' => true,
-            'action' => 'added',
-            'message' => 'İlan favorilere eklendi'
-        ]);
-    } else {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Favori eklenirken bir hata oluştu'
-        ]);
+
+    // İstatistikleri güncelle
+    $istatistikSorgu = $baglan->prepare("
+        INSERT INTO t_istatistik 
+            (istatistikIlanID, istatistikFavoriSayisi, istatistikSonGuncellenmeTarihi)
+        VALUES 
+            (?, (SELECT COUNT(*) FROM t_favoriler WHERE favoriIlanID = ? AND favoriDurum = 1), NOW())
+        ON DUPLICATE KEY UPDATE 
+            istatistikFavoriSayisi = (SELECT COUNT(*) FROM t_favoriler WHERE favoriIlanID = ? AND favoriDurum = 1),
+            istatistikSonGuncellenmeTarihi = NOW()
+    ");
+    $istatistikSorgu->bind_param("iii", $ilanID, $ilanID, $ilanID);
+    $istatistikSorgu->execute();
+
+    $baglan->commit();
+
+    // Güncel istatistik değerlerini al
+    $istatistikGetir = $baglan->prepare("
+        SELECT istatistikFavoriSayisi 
+        FROM t_istatistik 
+        WHERE istatistikIlanID = ?
+    ");
+    $istatistikGetir->bind_param("i", $ilanID);
+    $istatistikGetir->execute();
+    $istatistik = $istatistikGetir->get_result()->fetch_assoc();
+
+    echo json_encode([
+        'success' => true,
+        'message' => $message,
+        'action' => $action,
+        'yeniFavoriSayisi' => $istatistik['istatistikFavoriSayisi']
+    ]);
+
+} catch (Exception $e) {
+    if (isset($baglan) && $baglan->connect_errno === 0) {
+        $baglan->rollback();
     }
+    echo json_encode([
+        'success' => false,
+        'message' => $e->getMessage()
+    ]);
 }
 ?>

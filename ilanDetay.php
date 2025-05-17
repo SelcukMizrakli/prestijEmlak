@@ -8,11 +8,30 @@ if ($loggedIn) {
     $kullaniciEmail = $_SESSION['uyeMail'];
 }
 
-// İlan ID'sini al
-if (isset($_GET['id'])) {
-    $ilanID = intval($_GET['id']);
-} else {
-    // Eğer ID yoksa, ana sayfaya yönlendir
+// İlan ID'sini al ve kontrol et
+$ilanID = isset($_GET['ilanID']) ? intval($_GET['ilanID']) : (isset($_GET['id']) ? intval($_GET['id']) : 0);
+
+if ($ilanID <= 0) {
+    // Debug için hata mesajı
+    error_log("Geçersiz ilan ID: " . print_r($_GET, true));
+    
+    // Kullanıcıyı bilgilendir ve yönlendir
+    $_SESSION['hata'] = "Geçersiz ilan ID";
+    header("Location: index.php");
+    exit;
+}
+
+// İlanın varlığını kontrol et
+$kontrolSorgu = $baglan->prepare("SELECT ilanID FROM t_ilanlar WHERE ilanID = ?");
+$kontrolSorgu->bind_param("i", $ilanID);
+$kontrolSorgu->execute();
+
+if ($kontrolSorgu->get_result()->num_rows === 0) {
+    // Debug için hata mesajı
+    error_log("İlan bulunamadı: ID = " . $ilanID);
+    
+    // Kullanıcıyı bilgilendir ve yönlendir
+    $_SESSION['hata'] = "İlan bulunamadı";
     header("Location: index.php");
     exit;
 }
@@ -20,6 +39,7 @@ if (isset($_GET['id'])) {
 // İlan bilgilerini al
 $sorgu = $baglan->prepare("SELECT 
     il.ilanID,
+    il.ilanUyeID,
     uye.uyeAd,
     uye.uyeSoyad,
     uye.uyeTelNo,
@@ -65,6 +85,7 @@ if (!$ilan) {
 }
 
 // Varsayılan değerler
+$ilanSahibiID = $ilan->ilanUyeID ?? 0;
 $fiyat = $ilan->ilanDFiyat ?? 0;
 $metreKareBrut = $ilan->ilanDmetreKareBrut ?? 'Belirtilmemiş';
 $metreKareNet = $ilan->ilanDmetreKareNet ?? 'Belirtilmemiş';
@@ -96,14 +117,28 @@ $resimler = isset($ilan->resimler) && $ilan->resimler !== null ? explode(',', $i
 // Favori durumu kontrolü
 $favoriDurumu = false;
 if ($loggedIn) {
-    $favoriSorgu = $baglan->prepare("SELECT favoriID FROM t_favoriler 
-        WHERE favoriUyeID = ? AND favoriIlanID = ? ");
+    $favoriSorgu = $baglan->prepare("SELECT favoriID, favoriDurum FROM t_favoriler 
+        WHERE favoriUyeID = ? AND favoriIlanID = ?");
     $favoriSorgu->bind_param("ii", $_SESSION['uyeID'], $ilanID);
     $favoriSorgu->execute();
     $favoriSonuc = $favoriSorgu->get_result();
-    $favoriDurumu = $favoriSonuc->num_rows > 0;
+    if ($favoriSonuc->num_rows > 0) {
+        $favori = $favoriSonuc->fetch_assoc();
+        $favoriDurumu = $favori['favoriDurum'] == 1;
+    }
 }
 
+// İlan bilgilerini çekmeden önce görüntülenme sayısını artır
+$istatistikSorgu = $baglan->prepare("
+    INSERT INTO t_istatistik 
+    (istatistikIlanID, istatistikGoruntulenmeSayisi, istatistikSonGuncellenmeTarihi)
+    VALUES (?, 1, NOW())
+    ON DUPLICATE KEY UPDATE 
+    istatistikGoruntulenmeSayisi = istatistikGoruntulenmeSayisi + 1,
+    istatistikSonGuncellenmeTarihi = NOW()
+");
+$istatistikSorgu->bind_param("i", $ilanID);
+$istatistikSorgu->execute();
 ?>
 
 <!doctype html>
@@ -136,8 +171,11 @@ if ($loggedIn) {
                 <div class="col-md-6 ">
                     <h3>İlan Bilgileri</h3>
                     <?php if ($loggedIn): ?>
-                        <button id="favoriButton" class="btn <?php echo $favoriDurumu ? 'btn-danger' : 'btn-outline-danger'; ?> mb-3" onclick="favoriEkle(<?php echo $ilanID; ?>)">
-                            <i class="fas fa-heart"></i> <?php echo $favoriDurumu ? 'Favorilerden Çıkar' : 'Favorilere Ekle'; ?>
+                        <button id="favoriButton"
+                            class="btn <?php echo $favoriDurumu ? 'btn-danger' : 'btn-outline-danger'; ?> mb-3"
+                            onclick="favoriEkle(<?php echo $ilanID; ?>)">
+                            <i class="fas fa-heart"></i>
+                            <?php echo $favoriDurumu ? 'Favorilerden Çıkar' : 'Favorilere Ekle'; ?>
                         </button>
                     <?php endif; ?>
                     <ul class="list-group">
@@ -158,17 +196,25 @@ if ($loggedIn) {
                 </div>
                 <div class="col-md-6">
                     <h3>İlan Veren Bilgileri</h3>
+                    <?php if ($loggedIn): ?>
+                        <button class="btn btn-primary mb-3"
+                            onclick="mesajGonder(<?php echo $ilanID; ?>, <?php echo $ilanSahibiID; ?>)">
+                            <i class="fas fa-envelope"></i> Mesaj Gönder
+                        </button>
+                    <?php else: ?>
+                        <p class="text-muted mb-3">Mesaj göndermek için <a href="girisYap.php">giriş yapın</a></p>
+                    <?php endif; ?>
                     <ul class="list-group">
                         <li class="list-group-item">
-                            <strong>Ad Soyad:</strong> 
+                            <strong>Ad Soyad:</strong>
                             <?php echo htmlspecialchars($ilanVerenAd . ' ' . $ilanVerenSoyad); ?>
                         </li>
                         <li class="list-group-item">
-                            <strong>Telefon:</strong> 
+                            <strong>Telefon:</strong>
                             <?php echo htmlspecialchars($ilanVerenTelefon); ?>
                         </li>
                         <li class="list-group-item">
-                            <strong>E-posta:</strong> 
+                            <strong>E-posta:</strong>
                             <?php echo htmlspecialchars($ilanVerenEmail); ?>
                         </li>
                     </ul>
@@ -186,7 +232,8 @@ if ($loggedIn) {
                 </div>
             </div>
             <div class="map-container ">
-                <br><h2 style="margin-left: 33%;">Konum Bilgisi</h2>
+                <br>
+                <h2 style="margin-left: 33%;">Konum Bilgisi</h2>
                 <?php
                 $fullAddress = trim($adresMahalle . ', ' . $adresIlce . ', ' . $adresSehir);
                 if (!empty($fullAddress)): ?>
@@ -221,7 +268,6 @@ if ($loggedIn) {
         }
 
         function favoriEkle(ilanID) {
-            // Form verisi oluştur
             const formData = new FormData();
             formData.append('ilanID', ilanID);
 
@@ -237,22 +283,99 @@ if ($loggedIn) {
                         favoriButton.classList.remove('btn-outline-danger');
                         favoriButton.classList.add('btn-danger');
                         favoriButton.innerHTML = '<i class="fas fa-heart"></i> Favorilerden Çıkar';
-                    } else {
+                    } else if (data.action === 'removed') {
                         favoriButton.classList.remove('btn-danger');
                         favoriButton.classList.add('btn-outline-danger');
                         favoriButton.innerHTML = '<i class="fas fa-heart"></i> Favorilere Ekle';
                     }
+
+                    // İstatistik sayısını güncelle
+                    const favoriSayisiElement = document.querySelector('.stats-container .fa-heart + p');
+                    if (favoriSayisiElement) {
+                        favoriSayisiElement.textContent = data.yeniFavoriSayisi;
+                    }
+
                     alert(data.message);
                 } else {
-                    alert('Bir hata oluştu: ' + data.message);
+                    throw new Error(data.message);
                 }
             })
             .catch(error => {
                 console.error('Hata:', error);
-                alert('Bir hata oluştu!');
+                alert('Bir hata oluştu: ' + error.message);
             });
         }
+
+        function mesajGonder(ilanID, aliciID) {
+            if(!ilanID || !aliciID) {
+                alert('Geçersiz ilan veya alıcı bilgisi!');
+                return;
+            }
+            document.getElementById('ilanID').value = ilanID;
+            document.getElementById('aliciID').value = aliciID;
+            const modal = new bootstrap.Modal(document.getElementById('mesajModal'));
+            modal.show();
+        }
+
+        document.getElementById('mesajForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
+            // Debug için form verilerini kontrol et
+            console.log('İlan ID:', formData.get('ilanID'));
+            console.log('Alıcı ID:', formData.get('aliciID'));
+            console.log('Mesaj:', formData.get('mesajText'));
+
+            fetch('mesajGonder.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert('Mesajınız başarıyla gönderildi!');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('mesajModal'));
+                    modal.hide();
+                    this.reset();
+                } else {
+                    throw new Error(data.message || 'Mesaj gönderilemedi');
+                }
+            })
+            .catch(error => {
+                console.error('Hata detayı:', error);
+                alert('Mesaj gönderilirken bir hata oluştu: ' + error.message);
+            });
+        });
     </script>
+
+    <!-- Mesaj Modal -->
+    <div class="modal fade" id="mesajModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Mesaj Gönder</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="mesajForm">
+                        <input type="hidden" id="ilanID" name="ilanID">
+                        <input type="hidden" id="aliciID" name="aliciID">
+                        <div class="mb-3">
+                            <label for="mesajText" class="form-label">Mesajınız</label>
+                            <textarea class="form-control" id="mesajText" name="mesajText" rows="4" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Gönder</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>

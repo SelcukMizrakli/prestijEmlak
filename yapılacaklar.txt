@@ -48,13 +48,9 @@ Veri Tabanı Tabloları ve Sütunları:
         t_yetki          : yetkiID, yetkiAdi, yetkiOlusturmaTarihi, yetkiGuncellenmeTarihi
 
 
+*** mesajlar kısmı çalışacak (t_konusmalar ve t_mesajlar tabloları kullanılarak ilan detay ve profil sayfalarından mesaj gönderilebilecek)
 
-ilandetay sayfasındaki favorilere ekleme ve çıkarma butonu favoridurum değerine göre değişecek
+ilanların istatistikleri çalışacak ve her üye ilanlarım sayfasından kendi ilanlarının istatistiklerini görüntüleyebilecek
+        (favoriler ya da görüntülenme durumunda insert değil update yapılacak)
 
-profildeki favorilerim kısmı düzeltilecek (ilana tıklanabilecek ve tekrarlar iptal edilecek, favorilerden çıkarma eklenecek)
-
-kullanıcı profil detay sayfası çalışacak
-
-mesajlar kısmı çalışacak
-
-ilan eklerken ilan tür tablosuna yeni veri ekleme hatası düzeltilecek (satılık değeri tekrarlanıyor ya da kiralık...)
+profil kısmındaki ilanlarım sayfasında aynı ilana ait birden fazla ilan bilgisi görünüyor bu düzeltilecek

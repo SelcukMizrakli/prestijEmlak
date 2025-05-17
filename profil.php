@@ -61,6 +61,47 @@ if (!$kullanici) {
         max-height: 300px;
         overflow-y: auto;
     }
+
+    .message {
+        margin-bottom: 15px;
+    }
+
+    .message-bubble {
+        display: inline-block;
+        padding: 10px;
+        border-radius: 10px;
+        max-width: 70%;
+    }
+
+    /* İstatistik kartı stilleri */
+    .stats-container {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 10px;
+        margin-top: 15px;
+    }
+
+    .stats-container h6 {
+        color: #004080;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    .stats-container i {
+        font-size: 1.2rem;
+        color: #004080;
+    }
+
+    .stats-container p {
+        margin: 5px 0;
+        font-weight: bold;
+        color: #004080;
+    }
+
+    .stats-container small {
+        color: #6c757d;
+        font-size: 0.8rem;
+    }
 </style>
 
 <body>
@@ -230,7 +271,21 @@ if (!$kullanici) {
 
                     if ($result->num_rows > 0) {
                         while ($row = $result->fetch_assoc()) {
-                            $resim = $row['resimUrl'] ?: 'default.jpg'; // Resim yoksa varsayılan resim
+                            // İlan istatistiklerini çek
+                            $istatistikSorgu = $baglan->prepare("
+                                SELECT 
+                                    istatistikGoruntulenmeSayisi,
+                                    istatistikFavoriSayisi,
+                                    istatistikMesajSayisi,
+                                    istatistikSonGuncellenmeTarihi
+                                FROM t_istatistik 
+                                WHERE istatistikIlanID = ?
+                            ");
+                            $istatistikSorgu->bind_param("i", $row['ilanID']);
+                            $istatistikSorgu->execute();
+                            $istatistik = $istatistikSorgu->get_result()->fetch_assoc();
+
+                            $resim = $row['resimUrl'] ?: 'default.jpg';
                             echo '
                                 <div class="col-md-4" style="padding: 10px;">
                                     <div class="card">
@@ -239,11 +294,42 @@ if (!$kullanici) {
                                             <h5 class="card-title">' . htmlspecialchars($row['ilanDMulkTuru']) . '</h5>
                                             <p class="card-text"><strong>Fiyat:</strong> ' . number_format($row['ilanDFiyat'], 2) . ' TL</p>
                                             <p class="card-text"><strong>Konum:</strong> ' . htmlspecialchars($row['ilanDKonumBilgisi']) . '</p>
-                                            <a href="ilanDuzenle.php?id=' . $row['ilanID'] . '" class="btn btn-warning btn-sm">Düzenle</a>
+                                            
+                                            <!-- İstatistik Bilgileri -->
+                                            <div class="stats-container mt-3">
+                                                <h6>İlan İstatistikleri</h6>
+                                                <div class="row text-center">
+                                                    <div class="col-4">
+                                                        <i class="fas fa-eye"></i>
+                                                        <p>' . ($istatistik['istatistikGoruntulenmeSayisi'] ?? 0) . '</p>
+                                                        <small>Görüntülenme</small>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <i class="fas fa-heart"></i>
+                                                        <p>' . ($istatistik['istatistikFavoriSayisi'] ?? 0) . '</p>
+                                                        <small>Favori</small>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <i class="fas fa-envelope"></i>
+                                                        <p>' . ($istatistik['istatistikMesajSayisi'] ?? 0) . '</p>
+                                                        <small>Mesaj</small>
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted d-block text-center mt-2">
+                                                    Son Güncelleme: ' . 
+                                                    (isset($istatistik['istatistikSonGuncellenmeTarihi']) ? 
+                                                    date('d.m.Y H:i', strtotime($istatistik['istatistikSonGuncellenmeTarihi'])) : 
+                                                    'Güncelleme yok') . 
+                                                '</small>
+                                            </div>
+                                            
+                                            <div class="mt-3">
+                                                <a href="ilanDuzenle.php?id=' . $row['ilanID'] . '" class="btn btn-warning btn-sm">Düzenle</a>
+                                                <a href="ilanDetay.php?id=' . $row['ilanID'] . '" class="btn btn-info btn-sm">Detay</a>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ';
+                                </div>';
                         }
                     } else {
                         echo "<p>Henüz ilanınız bulunmamaktadır.</p>";
@@ -271,7 +357,7 @@ if (!$kullanici) {
                         AND f.favoriDurum = 1
                         GROUP BY i.ilanID
                     ");
-                    
+
                     $query->bind_param("i", $kullaniciID);
                     $query->execute();
                     $result = $query->get_result();
@@ -305,33 +391,62 @@ if (!$kullanici) {
 
             <!-- Mesajlar -->
             <div class="tab-pane fade" id="mesajlar" role="tabpanel">
-                <div class="message-list">
-                    <?php
-                    $query = $baglan->prepare("
-                        SELECT m.mesajText, m.mesajOkunduDurumu, u.uyeMail
-                        FROM t_mesajlar m
-                        JOIN t_uyeler u ON m.mesajIletenID = u.uyeID
-                        WHERE m.mesajAlanID = ?
-                    ");
-                    $query->bind_param("i", $kullaniciID);
-                    $query->execute();
-                    $result = $query->get_result();
+                <div class="row">
+                    <div class="col-md-4">
+                        <!-- Konuşma listesi -->
+                        <div class="list-group">
+                            <?php
+                            $konusmalarSorgu = $baglan->prepare("
+                                SELECT DISTINCT 
+                                    k.konusmaID,
+                                    k.konusmaIlanID,
+                                    i.ilanID,
+                                    id.ilanDMulkTuru,
+                                    u.uyeAd,
+                                    MAX(m.mesajGonderilmeTarihi) as sonMesajTarihi,
+                                    COUNT(CASE WHEN m.mesajOkunduDurumu = 0 AND m.mesajAlanID = ? THEN 1 END) as okunmamisSayisi
+                                FROM t_konusmalar k
+                                JOIN t_mesajlar m ON k.konusmaID = m.mesajKonusmaID
+                                JOIN t_ilanlar i ON k.konusmaIlanID = i.ilanID
+                                JOIN t_ilandetay id ON i.ilanID = id.ilanDilanID
+                                JOIN t_uyeler u ON (m.mesajIletenID = u.uyeID OR m.mesajAlanID = u.uyeID) AND u.uyeID != ?
+                                WHERE m.mesajIletenID = ? OR m.mesajAlanID = ?
+                                GROUP BY k.konusmaID
+                                ORDER BY sonMesajTarihi DESC
+                            ");
 
-                    if ($result->num_rows > 0) {
-                        while ($row = $result->fetch_assoc()) {
-                            $okunduDurumu = $row['mesajOkunduDurumu'] == 1 ? "Görüldü" : "Görülmedi";
-                            echo '
-                                <div class="message-summary border p-3 mb-2">
-                                    <strong>' . htmlspecialchars($row['uyeMail']) . '</strong>
-                                    <p>' . htmlspecialchars($row['mesajText']) . '</p>
-                                    <small>' . $okunduDurumu . '</small>
+                            $konusmalarSorgu->bind_param("iiii", $kullaniciID, $kullaniciID, $kullaniciID, $kullaniciID);
+                            $konusmalarSorgu->execute();
+                            $konusmalar = $konusmalarSorgu->get_result();
+
+                            while ($konusma = $konusmalar->fetch_assoc()) {
+                                $aktifClass = $konusma['okunmamisSayisi'] > 0 ? 'active' : '';
+                                echo '
+                                <a href="#" class="list-group-item list-group-item-action ' . $aktifClass . '" 
+                                   onclick="mesajlariGoster(' . $konusma['konusmaID'] . ')">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">' . htmlspecialchars($konusma['uyeAd']) . '</h6>
+                                            <small>' . htmlspecialchars($konusma['ilanDMulkTuru']) . '</small>
+                                        </div>
+                                        ' . ($konusma['okunmamisSayisi'] > 0 ?
+                                    '<span class="badge bg-primary rounded-pill">' . $konusma['okunmamisSayisi'] . '</span>' : '') . '
+                                    </div>
+                                </a>';
+                            }
+                            ?>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <!-- Mesaj içeriği -->
+                        <div id="mesajIcerik" class="card">
+                            <div class="card-body">
+                                <div id="mesajlarYukleniyor" class="text-center">
+                                    Bir konuşma seçin...
                                 </div>
-                            ';
-                        }
-                    } else {
-                        echo "<p>Henüz mesajınız bulunmamaktadır.</p>";
-                    }
-                    ?>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -340,16 +455,17 @@ if (!$kullanici) {
                 <div class="tab-pane fade <?php echo isset($_GET['tab']) && $_GET['tab'] === 'yonetim' ? 'show active' : ''; ?>" id="yonetim" role="tabpanel">
                     <div class="container mt-3">
                         <h4>Üye Listesi</h4>
+                        <!-- Filtreleme formu güncelleniyor -->
                         <form method="GET" class="mb-3">
-                            <input type="hidden" name="tab" value="yonetim"> <!-- Yönetim sekmesinde kalmak için -->
+                            <input type="hidden" name="tab" value="yonetim">
                             <div class="row">
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <input type="text" name="isim" class="form-control" placeholder="İsim" value="<?php echo isset($_GET['isim']) ? htmlspecialchars($_GET['isim']) : ''; ?>">
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <input type="text" name="mail" class="form-control" placeholder="E-posta" value="<?php echo isset($_GET['mail']) ? htmlspecialchars($_GET['mail']) : ''; ?>">
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <select name="yetki" class="form-control">
                                         <option value="">Yetki Seç</option>
                                         <option value="1" <?php echo isset($_GET['yetki']) && $_GET['yetki'] == 1 ? 'selected' : ''; ?>>Admin</option>
@@ -357,8 +473,16 @@ if (!$kullanici) {
                                         <option value="3" <?php echo isset($_GET['yetki']) && $_GET['yetki'] == 3 ? 'selected' : ''; ?>>Şirket</option>
                                     </select>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
+                                    <select name="durum" class="form-control">
+                                        <option value="">Aktiflik Durumunu Seç</option>
+                                        <option value="1" <?php echo isset($_GET['durum']) && $_GET['durum'] == 1 ? 'selected' : ''; ?>>Aktif</option>
+                                        <option value="0" <?php echo isset($_GET['durum']) && $_GET['durum'] === '0' ? 'selected' : ''; ?>>Pasif</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
                                     <button type="submit" class="btn btn-primary">Filtrele</button>
+                                    <a href="?tab=yonetim" class="btn btn-secondary">Temizle</a>
                                 </div>
                             </div>
                         </form>
@@ -366,10 +490,10 @@ if (!$kullanici) {
                         <div class="message-list">
                             <?php
                             $queryStr = "
-                                SELECT u.uyeID, u.uyeMail, u.uyeTelNo, u.uyeYetkiID, y.yetkiAdi
+                                SELECT u.uyeID, u.uyeAd, u.uyeMail, u.uyeTelNo, u.uyeYetkiID, u.uyeAktiflikDurumu, y.yetkiAdi
                                 FROM t_uyeler u
                                 JOIN t_yetki y ON u.uyeYetkiID = y.yetkiID
-                                WHERE u.uyeAktiflikDurumu = 1
+                                WHERE 1=1
                             ";
 
                             // Filtreleme koşulları
@@ -382,18 +506,30 @@ if (!$kullanici) {
                             if (!empty($_GET['yetki'])) {
                                 $queryStr .= " AND u.uyeYetkiID = " . intval($_GET['yetki']);
                             }
+                            if (isset($_GET['durum']) && $_GET['durum'] !== '') {
+                                $queryStr .= " AND u.uyeAktiflikDurumu = " . intval($_GET['durum']);
+                            }
 
                             $query = $baglan->query($queryStr);
 
                             if ($query->num_rows > 0) {
                                 while ($row = $query->fetch_assoc()) {
+                                    $durumRenk = $row['uyeAktiflikDurumu'] ? 'success' : 'danger';
+                                    $durumText = $row['uyeAktiflikDurumu'] ? 'Aktif' : 'Pasif';
                                     echo '
                                         <div class="message-summary border p-3 mb-2">
-                                            <strong>' . htmlspecialchars($row['uyeMail']) . '</strong>
-                                            <p>Telefon: ' . htmlspecialchars($row['uyeTelNo']) . '</p>
-                                            <p>Yetki: ' . htmlspecialchars($row['yetkiAdi']) . '</p>
-                                            <button class="btn btn-warning btn-sm" onclick="openYetkiModal(' . $row['uyeID'] . ', \'' . $row['uyeYetkiID'] . '\')">Yetki Düzenle</button>
-                                            <a href="kullaniciProfilDetay.php?id=' . $row['uyeID'] . '" class="btn btn-info btn-sm">Daha Fazla Görüntüle</a>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <strong>' . htmlspecialchars($row['uyeMail']) . '</strong>
+                                                    <p class="mb-1">Telefon: ' . htmlspecialchars($row['uyeTelNo']) . '</p>
+                                                    <p class="mb-1">Yetki: ' . htmlspecialchars($row['yetkiAdi']) . '</p>
+                                                    <span class="badge bg-' . $durumRenk . '">' . $durumText . '</span>
+                                                </div>
+                                                <div>
+                                                    <button class="btn btn-warning btn-sm" onclick="openYetkiModal(' . $row['uyeID'] . ', \'' . $row['uyeYetkiID'] . '\')">Yetki Düzenle</button>
+                                                    <a href="kullaniciProfilDetay.php?id=' . $row['uyeID'] . '" class="btn btn-info btn-sm">Daha Fazla Görüntüle</a>
+                                                </div>
+                                            </div>
                                         </div>
                                     ';
                                 }
@@ -428,15 +564,15 @@ if (!$kullanici) {
                                 $hakkimizdaTitle = $matches[1];
                             }
                             // Main heading h1
-                            if (preg_match('/<h1.*?>(.*?)<\/h1>/s', $hakkimizdaIcerik, $matches)) {
+                            if (preg_match('/<h1.*?>(.*?)<\/h1>/s', $hakkımızdaIcerik, $matches)) {
                                 $hakkimizdaHeading = strip_tags($matches[1]);
                             }
                             // Image src
-                            if (preg_match('/<img.*?src=["\'](.*?)["\'].*?>/s', $hakkimizdaIcerik, $matches)) {
+                            if (preg_match('/<img.*?src=["\'](.*?)["\'].*?>/s', $hakkımızdaIcerik, $matches)) {
                                 $hakkimizdaImage = $matches[1];
                             }
                             // Paragraphs in main content (between <div class="col-md-6"> and </div>)
-                            if (preg_match_all('/<div class="col-md-6 mx-auto mb-4">\s*(.*?)\s*<\/div>/s', $hakkimizdaIcerik, $divMatches)) {
+                            if (preg_match_all('/<div class="col-md-6 mx-auto mb-4">\s*(.*?)\s*<\/div>/s', $hakkımızdaIcerik, $divMatches)) {
                                 $contentDiv = $divMatches[1][0] ?? '';
                                 if ($contentDiv) {
                                     preg_match_all('/<p>(.*?)<\/p>/s', $contentDiv, $pMatches);
@@ -936,6 +1072,88 @@ if (!$kullanici) {
                         alert('Bir hata oluştu.');
                     });
             });
+
+            // Mesajları gösterme fonksiyonu
+            function mesajlariGoster(konusmaID) {
+                const mesajIcerik = document.getElementById('mesajIcerik');
+                mesajIcerik.innerHTML = '<div class="text-center">Mesajlar yükleniyor...</div>';
+
+                fetch('mesajlariGetir.php?konusmaID=' + konusmaID)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            let html = '<div class="message-container p-3">';
+                            data.mesajlar.forEach(mesaj => {
+                                const benimMesajim = mesaj.mesajIletenID == <?php echo $kullaniciID; ?>;
+                                html += `
+                                    <div class="message ${benimMesajim ? 'text-end' : 'text-start'} mb-3">
+                                        <div class="message-bubble d-inline-block p-2 rounded ${benimMesajim ? 'bg-primary text-white' : 'bg-light'}">
+                                            <div class="message-sender small text-muted">
+                                                ${mesaj.gonderenAd}
+                                            </div>
+                                            <div class="message-text">
+                                                ${mesaj.mesajText}
+                                            </div>
+                                            <div class="message-time small text-${benimMesajim ? 'light' : 'muted'}">
+                                                ${mesaj.mesajGonderilmeTarihi}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            html += '</div>';
+                            mesajIcerik.innerHTML = html;
+                            mesajIcerik.scrollTop = mesajIcerik.scrollHeight;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Hata:', error);
+                        mesajIcerik.innerHTML = '<div class="text-center text-danger">Mesajlar yüklenirken bir hata oluştu</div>';
+                    });
+            }
+
+            // Mesajları otomatik yenileme
+            let aktifKonusmaID = null;
+            let sonMesajID = 0;
+
+            function mesajlariGoster(konusmaID) {
+                aktifKonusmaID = konusmaID;
+                yeniMesajlariGoster();
+            }
+
+            function yeniMesajlariGoster() {
+                if (!aktifKonusmaID) return;
+
+                fetch('mesajlariGetir.php?konusmaID=' + aktifKonusmaID)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const mesajIcerik = document.getElementById('mesajIcerik');
+                            let html = '<div class="message-container p-3">';
+                            data.mesajlar.forEach(mesaj => {
+                                const benimMesajim = mesaj.mesajIletenID == <?php echo $kullaniciID; ?>;
+                                if (mesaj.mesajID > sonMesajID) {
+                                    html += `
+                            <div class="message ${benimMesajim ? 'text-end' : 'text-start'} mb-3">
+                                <div class="message-bubble d-inline-block p-2 rounded ${benimMesajim ? 'bg-primary text-white' : 'bg-light'}">
+                                    <div class="message-sender small">${mesaj.gonderenAd}</div>
+                                    <div class="message-text">${mesaj.mesajText}</div>
+                                    <div class="message-time small">${mesaj.mesajGonderilmeTarihi}</div>
+                                </div>
+                            </div>
+                        `;
+                                    sonMesajID = mesaj.mesajID;
+                                }
+                            });
+                            html += '</div>';
+                            mesajIcerik.innerHTML = html;
+                            mesajIcerik.scrollTop = mesajIcerik.scrollHeight;
+                        }
+                    });
+            }
+
+            // Her 2.5 saniyede bir yeni mesajları kontrol et
+            setInterval(yeniMesajlariGoster, 2500);
         </script>
         <script type="text/javascript">
             document.addEventListener("DOMContentLoaded", function() {

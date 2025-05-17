@@ -53,11 +53,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $mulkTipiID = $baglan->insert_id;
 
-        // 2. t_ilantur tablosuna ekleme
-        $stmt = $baglan->prepare("INSERT INTO t_ilantur (ilanTurAdi) VALUES (?)");
+        // 2. t_ilantur tablosuna ekleme - Önce kontrol et, yoksa ekle
+        $stmt = $baglan->prepare("SELECT ilanTurID FROM t_ilantur WHERE ilanTurAdi = ?");
         $stmt->bind_param("s", $ilanTur);
         $stmt->execute();
-        $ilanTurID = $baglan->insert_id;
+        $result = $stmt->get_result();
+
+        if ($result->num_rows > 0) {
+            // İlan türü zaten var, mevcut ID'yi kullan
+            $ilanTurRow = $result->fetch_assoc();
+            $ilanTurID = $ilanTurRow['ilanTurID'];
+        } else {
+            // İlan türü yok, yeni ekle
+            $stmt = $baglan->prepare("INSERT INTO t_ilantur (ilanTurAdi) VALUES (?)");
+            $stmt->bind_param("s", $ilanTur);
+            $stmt->execute();
+            $ilanTurID = $baglan->insert_id;
+        }
 
         // 3. t_adresler tablosuna ekleme
         $stmt = $baglan->prepare("INSERT INTO t_adresler (adresBaslik, adresMahalle, adresIlce, adresSehir, adresUlke, adresPostaKodu, adresEklenmeTarihi, adresGuncellenmeTarihi, adresSilinmeTarihi) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW(), NULL)");
