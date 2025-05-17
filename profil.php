@@ -259,11 +259,18 @@ if (!$kullanici) {
                 <div class="row">
                     <?php
                     $query = $baglan->prepare("
-                        SELECT il.ilanID, id.ilanDFiyat, id.ilanDMulkTuru, id.ilanDKonumBilgisi, r.resimUrl
+                        SELECT 
+                            il.ilanID, 
+                            id.ilanDFiyat, 
+                            id.ilanDMulkTuru, 
+                            id.ilanDKonumBilgisi,
+                            MIN(r.resimUrl) as resimUrl  -- İlan başına tek resim al
                         FROM t_ilanlar il
                         JOIN t_ilandetay id ON il.ilanID = id.ilanDilanID
-                        LEFT JOIN t_resimler r ON il.ilanID = r.resimIlanID AND r.resimDurum = 1
+                        LEFT JOIN t_resimler r ON il.ilanID = r.resimIlanID 
+                            AND r.resimDurum = 1
                         WHERE il.ilanUyeID = ?
+                        GROUP BY il.ilanID, id.ilanDFiyat, id.ilanDMulkTuru, id.ilanDKonumBilgisi  -- İlanları grupla
                     ");
                     $query->bind_param("i", $kullaniciID);
                     $query->execute();
@@ -580,7 +587,7 @@ if (!$kullanici) {
                                 }
                             }
                             // Contact heading and paragraph with link
-                            if (preg_match('/<div class="text-center mt-5">(.*?)<\/div>/s', $hakkimizdaIcerik, $contactDiv)) {
+                            if (preg_match('/<div class="text-center mt-5">(.*?)<\/div>/s', $hakkımızdaIcerik, $contactDiv)) {
                                 $contactContent = $contactDiv[1];
                                 if (preg_match('/<h3.*?>(.*?)<\/h3>/s', $contactContent, $h3Match)) {
                                     $hakkimizdaContactHeading = strip_tags($h3Match[1]);

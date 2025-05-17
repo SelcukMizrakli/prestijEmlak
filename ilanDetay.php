@@ -128,17 +128,37 @@ if ($loggedIn) {
     }
 }
 
-// İlan bilgilerini çekmeden önce görüntülenme sayısını artır
-$istatistikSorgu = $baglan->prepare("
-    INSERT INTO t_istatistik 
-    (istatistikIlanID, istatistikGoruntulenmeSayisi, istatistikSonGuncellenmeTarihi)
-    VALUES (?, 1, NOW())
-    ON DUPLICATE KEY UPDATE 
-    istatistikGoruntulenmeSayisi = istatistikGoruntulenmeSayisi + 1,
-    istatistikSonGuncellenmeTarihi = NOW()
-");
-$istatistikSorgu->bind_param("i", $ilanID);
-$istatistikSorgu->execute();
+// Session'da görüntülenen ilanları tutmak için array oluştur
+if (!isset($_SESSION['goruntulenen_ilanlar'])) {
+    $_SESSION['goruntulenen_ilanlar'] = array();
+}
+
+// İlan daha önce görüntülenmediyse sayacı artır
+if (!in_array($ilanID, $_SESSION['goruntulenen_ilanlar'])) {
+    // İstatistik tablosunu güncelle
+    $istatistikSorgu = $baglan->prepare("
+        UPDATE t_istatistik 
+        SET istatistikGoruntulenmeSayisi = istatistikGoruntulenmeSayisi + 1,
+            istatistikSonGuncellenmeTarihi = NOW()
+        WHERE istatistikIlanID = ?
+    ");
+    $istatistikSorgu->bind_param("i", $ilanID);
+    $istatistikSorgu->execute();
+
+    // Eğer kayıt yoksa yeni kayıt oluştur
+    if ($istatistikSorgu->affected_rows == 0) {
+        $istatistikSorgu = $baglan->prepare("
+            INSERT INTO t_istatistik 
+            (istatistikIlanID, istatistikGoruntulenmeSayisi, istatistikSonGuncellenmeTarihi)
+            VALUES (?, 1, NOW())
+        ");
+        $istatistikSorgu->bind_param("i", $ilanID);
+        $istatistikSorgu->execute();
+    }
+
+    // İlanı görüntülenen ilanlar listesine ekle
+    $_SESSION['goruntulenen_ilanlar'][] = $ilanID;
+}
 ?>
 
 <!doctype html>
@@ -231,14 +251,14 @@ $istatistikSorgu->execute();
                     </ul>
                 </div>
             </div>
-            <div class="map-container ">
+            <div class="map-container">
                 <br>
                 <h2 style="margin-left: 33%;">Konum Bilgisi</h2>
                 <?php
                 $fullAddress = trim($adresMahalle . ', ' . $adresIlce . ', ' . $adresSehir);
                 if (!empty($fullAddress)): ?>
                     <iframe
-                        src="https://www.google.com/maps?q=<?php echo urlencode($fullAddress); ?>&output=embed"
+                        src="https://maps.google.com/maps?width=100%25&height=300&hl=tr&q=<?php echo urlencode($fullAddress); ?>&t=&z=14&ie=UTF8&iwloc=B&output=embed"
                         width="50%"
                         height="300"
                         style="border:0; margin-left: 25%;"
@@ -268,15 +288,39 @@ $istatistikSorgu->execute();
         }
 
         function favoriEkle(ilanID) {
+            if (!ilanID) {
+                console.error('İlan ID bulunamadı');
+                return;
+            }
+
             const formData = new FormData();
             formData.append('ilanID', ilanID);
 
             fetch('favoriEkle.php', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text().then(text => {
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('Parse error:', text);
+                        throw new Error('Invalid JSON response');
+                    }
+                });
+            })
             .then(data => {
+                if (!data || !data.hasOwnProperty('success')) {
+                    throw new Error('Invalid response format');
+                }
+
                 if (data.success) {
                     const favoriButton = document.getElementById('favoriButton');
                     if (data.action === 'added') {
@@ -289,20 +333,24 @@ $istatistikSorgu->execute();
                         favoriButton.innerHTML = '<i class="fas fa-heart"></i> Favorilere Ekle';
                     }
 
-                    // İstatistik sayısını güncelle
-                    const favoriSayisiElement = document.querySelector('.stats-container .fa-heart + p');
-                    if (favoriSayisiElement) {
-                        favoriSayisiElement.textContent = data.yeniFavoriSayisi;
+                    // Update statistics if available
+                    if (data.yeniFavoriSayisi !== undefined) {
+                        const favoriSayisiElement = document.querySelector('.stats-container .fa-heart + p');
+                        if (favoriSayisiElement) {
+                            favoriSayisiElement.textContent = data.yeniFavoriSayisi;
+                        }
                     }
 
-                    alert(data.message);
+                    if (data.message) {
+                        alert(data.message);
+                    }
                 } else {
-                    throw new Error(data.message);
+                    throw new Error(data.message || 'İşlem başarısız');
                 }
             })
             .catch(error => {
                 console.error('Hata:', error);
-                alert('Bir hata oluştu: ' + error.message);
+                alert('İşlem sırasında bir hata oluştu: ' + error.message);
             });
         }
 
@@ -317,39 +365,43 @@ $istatistikSorgu->execute();
             modal.show();
         }
 
-        document.getElementById('mesajForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
+        // Form event listener'ı koşullu olarak ekle
+        document.addEventListener('DOMContentLoaded', function() {
+            const mesajForm = document.getElementById('mesajForm');
+            if (mesajForm) {
+                mesajForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const formData = new FormData(this);
 
-            // Debug için form verilerini kontrol et
-            console.log('İlan ID:', formData.get('ilanID'));
-            console.log('Alıcı ID:', formData.get('aliciID'));
-            console.log('Mesaj:', formData.get('mesajText'));
-
-            fetch('mesajGonder.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    alert('Mesajınız başarıyla gönderildi!');
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('mesajModal'));
-                    modal.hide();
-                    this.reset();
-                } else {
-                    throw new Error(data.message || 'Mesaj gönderilemedi');
-                }
-            })
-            .catch(error => {
-                console.error('Hata detayı:', error);
-                alert('Mesaj gönderilirken bir hata oluştu: ' + error.message);
-            });
+                    fetch('mesajGonder.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.text()) // önce text olarak al
+                    .then(text => {
+                        try {
+                            return JSON.parse(text); // sonra JSON'a çevir
+                        } catch (e) {
+                            console.error('JSON Parse Error:', text);
+                            throw new Error('Sunucu yanıtı geçersiz');
+                        }
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            alert('Mesajınız başarıyla gönderildi!');
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('mesajModal'));
+                            modal.hide();
+                            this.reset();
+                        } else {
+                            throw new Error(data.message || 'Mesaj gönderilemedi');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Hata detayı:', error);
+                        alert('Mesaj gönderilirken bir hata oluştu: ' + error.message);
+                    });
+                });
+            }
         });
     </script>
 
