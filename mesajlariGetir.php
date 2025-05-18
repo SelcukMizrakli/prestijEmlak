@@ -23,8 +23,8 @@ $baglan->query("
 $mesajlarSorgu = $baglan->prepare("
     SELECT 
         m.*,
-        u.uyeAd,
-        u.uyeSoyad
+        DATE_FORMAT(m.mesajGonderilmeTarihi, '%H:%i') as mesajSaati,
+        CONCAT(u.uyeAd, ' ', u.uyeSoyad) as gonderenAdSoyad
     FROM t_mesajlar m
     JOIN t_uyeler u ON m.mesajIletenID = u.uyeID
     WHERE m.mesajKonusmaID = ?
@@ -41,9 +41,8 @@ while ($mesaj = $result->fetch_assoc()) {
         'mesajID' => $mesaj['mesajID'],
         'mesajIletenID' => $mesaj['mesajIletenID'],
         'mesajText' => htmlspecialchars($mesaj['mesajText']),
-        'mesajGonderilmeTarihi' => date('d.m.Y H:i', strtotime($mesaj['mesajGonderilmeTarihi'])),
-        'gonderenAd' => htmlspecialchars($mesaj['uyeAd'] . ' ' . $mesaj['uyeSoyad']),
-        'mesajOkunduDurumu' => $mesaj['mesajOkunduDurumu']
+        'mesajGonderilmeTarihi' => $mesaj['mesajSaati'],
+        'gonderenAdSoyad' => htmlspecialchars($mesaj['gonderenAdSoyad'])
     ];
 }
 

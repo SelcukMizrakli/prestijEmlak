@@ -323,11 +323,11 @@ if (!$kullanici) {
                                                     </div>
                                                 </div>
                                                 <small class="text-muted d-block text-center mt-2">
-                                                    Son Güncelleme: ' . 
-                                                    (isset($istatistik['istatistikSonGuncellenmeTarihi']) ? 
-                                                    date('d.m.Y H:i', strtotime($istatistik['istatistikSonGuncellenmeTarihi'])) : 
-                                                    'Güncelleme yok') . 
-                                                '</small>
+                                                    Son Güncelleme: ' .
+                                (isset($istatistik['istatistikSonGuncellenmeTarihi']) ?
+                                    date('d.m.Y H:i', strtotime($istatistik['istatistikSonGuncellenmeTarihi'])) :
+                                    'Güncelleme yok') .
+                                '</small>
                                             </div>
                                             
                                             <div class="mt-3">
@@ -410,6 +410,7 @@ if (!$kullanici) {
                                     i.ilanID,
                                     id.ilanDMulkTuru,
                                     u.uyeAd,
+                                    u.uyeSoyad,
                                     MAX(m.mesajGonderilmeTarihi) as sonMesajTarihi,
                                     COUNT(CASE WHEN m.mesajOkunduDurumu = 0 AND m.mesajAlanID = ? THEN 1 END) as okunmamisSayisi
                                 FROM t_konusmalar k
@@ -429,11 +430,11 @@ if (!$kullanici) {
                             while ($konusma = $konusmalar->fetch_assoc()) {
                                 $aktifClass = $konusma['okunmamisSayisi'] > 0 ? 'active' : '';
                                 echo '
-                                <a href="#" class="list-group-item list-group-item-action ' . $aktifClass . '" 
-                                   onclick="mesajlariGoster(' . $konusma['konusmaID'] . ')">
+                                <a href="javascript:void(0)" class="list-group-item list-group-item-action ' . $aktifClass . '" 
+                                   onclick="mesajlariGoster(event, ' . $konusma['konusmaID'] . ', this)">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <h6 class="mb-1">' . htmlspecialchars($konusma['uyeAd']) . '</h6>
+                                            <h6 class="mb-1">' . htmlspecialchars($konusma['uyeAd'] . ' ' . $konusma['uyeSoyad']) . '</h6>
                                             <small>' . htmlspecialchars($konusma['ilanDMulkTuru']) . '</small>
                                         </div>
                                         ' . ($konusma['okunmamisSayisi'] > 0 ?
@@ -446,13 +447,92 @@ if (!$kullanici) {
                     </div>
                     <div class="col-md-8">
                         <!-- Mesaj içeriği -->
-                        <div id="mesajIcerik" class="card">
-                            <div class="card-body">
-                                <div id="mesajlarYukleniyor" class="text-center">
-                                    Bir konuşma seçin...
+<div id="mesajIcerik" class="card">
+    <div class="card-body message-container">
+        <div id="mesajlarYukleniyor" class="text-center">
+            Bir konuşma seçin...
+        </div>
+    </div>
+    <div class="card-footer">
+        <form id="yeniMesajForm" class="d-none">
+            <div class="input-group">
+                <input type="text" id="yeniMesajText" class="form-control" placeholder="Mesajınızı yazın..." required>
+                <button type="submit" class="btn btn-primary">Gönder</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let aktifKonusmaID = null;
+
+    function mesajlariGoster(event, konusmaID, element) {
+        if(event) event.preventDefault();
+
+        // Aktif olan öğeden active class kaldır
+        document.querySelectorAll('.list-group-item').forEach(item => item.classList.remove('active'));
+        // Tıklanan öğeye active class ekle
+        if(element) element.classList.add('active');
+
+        aktifKonusmaID = konusmaID;
+        const yeniMesajForm = document.getElementById('yeniMesajForm');
+        yeniMesajForm.classList.remove('d-none');
+
+        const mesajIcerik = document.getElementById('mesajIcerik');
+        mesajIcerik.querySelector('.card-body').innerHTML = '<div class="text-center">Mesajlar yükleniyor...</div>';
+
+        fetch('mesajlariGetir.php?konusmaID=' + konusmaID)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let html = '<div class="message-container p-3">';
+                    data.mesajlar.forEach(mesaj => {
+                        const benimMesajim = mesaj.mesajIletenID == <?php echo $kullaniciID; ?>;
+                        html += `
+                            <div class="message ${benimMesajim ? 'outgoing' : 'incoming'}">
+                                <div class="message-bubble">
+                                    <div class="message-text">${mesaj.mesajText}</div>
+                                    <div class="message-time">${mesaj.mesajGonderilmeTarihi}</div>
                                 </div>
                             </div>
-                        </div>
+                        `;
+                    });
+                    html += '</div>';
+                    mesajIcerik.querySelector('.card-body').innerHTML = html;
+                    mesajIcerik.querySelector('.card-body').scrollTop = mesajIcerik.querySelector('.card-body').scrollHeight;
+                } else {
+                    mesajIcerik.querySelector('.card-body').innerHTML = '<div class="text-center text-danger">Mesajlar yüklenirken bir hata oluştu</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Hata:', error);
+                mesajIcerik.querySelector('.card-body').innerHTML = '<div class="text-center text-danger">Mesajlar yüklenirken bir hata oluştu</div>';
+            });
+    }
+
+    // Yeni mesaj gönderme
+    document.getElementById('yeniMesajForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const mesajText = document.getElementById('yeniMesajText').value.trim();
+        if (!mesajText || !aktifKonusmaID) return;
+
+        const formData = new FormData();
+        formData.append('konusmaID', aktifKonusmaID);
+        formData.append('mesajText', mesajText);
+
+        fetch('mesajGonder.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('yeniMesajText').value = '';
+                mesajlariGoster(null, aktifKonusmaID);
+            }
+        });
+    });
+</script>
                     </div>
                 </div>
             </div>
@@ -571,15 +651,15 @@ if (!$kullanici) {
                                 $hakkimizdaTitle = $matches[1];
                             }
                             // Main heading h1
-                            if (preg_match('/<h1.*?>(.*?)<\/h1>/s', $hakkımızdaIcerik, $matches)) {
+                            if (preg_match('/<h1.*?>(.*?)<\/h1>/s', $hakkimizdaIcerik, $matches)) {
                                 $hakkimizdaHeading = strip_tags($matches[1]);
                             }
                             // Image src
-                            if (preg_match('/<img.*?src=["\'](.*?)["\'].*?>/s', $hakkımızdaIcerik, $matches)) {
+                            if (preg_match('/<img.*?src=["\'](.*?)["\'].*?>/s', $hakkimizdaIcerik, $matches)) {
                                 $hakkimizdaImage = $matches[1];
                             }
-                            // Paragraphs in main content (between <div class="col-md-6"> and </div>)
-                            if (preg_match_all('/<div class="col-md-6 mx-auto mb-4">\s*(.*?)\s*<\/div>/s', $hakkımızdaIcerik, $divMatches)) {
+                            // Paragraphs in main content
+                            if (preg_match_all('/<div class="col-md-6 mx-auto mb-4">\s*(.*?)\s*<\/div>/s', $hakkimizdaIcerik, $divMatches)) {
                                 $contentDiv = $divMatches[1][0] ?? '';
                                 if ($contentDiv) {
                                     preg_match_all('/<p>(.*?)<\/p>/s', $contentDiv, $pMatches);
@@ -587,7 +667,7 @@ if (!$kullanici) {
                                 }
                             }
                             // Contact heading and paragraph with link
-                            if (preg_match('/<div class="text-center mt-5">(.*?)<\/div>/s', $hakkımızdaIcerik, $contactDiv)) {
+                            if (preg_match('/<div class="text-center mt-5">(.*?)<\/div>/s', $hakkimizdaIcerik, $contactDiv)) {
                                 $contactContent = $contactDiv[1];
                                 if (preg_match('/<h3.*?>(.*?)<\/h3>/s', $contactContent, $h3Match)) {
                                     $hakkimizdaContactHeading = strip_tags($h3Match[1]);
@@ -1081,7 +1161,17 @@ if (!$kullanici) {
             });
 
             // Mesajları gösterme fonksiyonu
-            function mesajlariGoster(konusmaID) {
+            function mesajlariGoster(event, konusmaID, element) {
+                if(event) event.preventDefault();
+
+                // Aktif olan öğeden active class kaldır
+                document.querySelectorAll('.list-group-item').forEach(item => item.classList.remove('active'));
+                // Tıklanan öğeye active class ekle
+                if(element) element.classList.add('active');
+
+                aktifKonusmaID = konusmaID;
+                document.getElementById('yeniMesajForm').classList.remove('d-none');
+
                 const mesajIcerik = document.getElementById('mesajIcerik');
                 mesajIcerik.innerHTML = '<div class="text-center">Mesajlar yükleniyor...</div>';
 
@@ -1093,17 +1183,10 @@ if (!$kullanici) {
                             data.mesajlar.forEach(mesaj => {
                                 const benimMesajim = mesaj.mesajIletenID == <?php echo $kullaniciID; ?>;
                                 html += `
-                                    <div class="message ${benimMesajim ? 'text-end' : 'text-start'} mb-3">
-                                        <div class="message-bubble d-inline-block p-2 rounded ${benimMesajim ? 'bg-primary text-white' : 'bg-light'}">
-                                            <div class="message-sender small text-muted">
-                                                ${mesaj.gonderenAd}
-                                            </div>
-                                            <div class="message-text">
-                                                ${mesaj.mesajText}
-                                            </div>
-                                            <div class="message-time small text-${benimMesajim ? 'light' : 'muted'}">
-                                                ${mesaj.mesajGonderilmeTarihi}
-                                            </div>
+                                    <div class="message ${benimMesajim ? 'outgoing' : 'incoming'}">
+                                        <div class="message-bubble">
+                                            <div class="message-text">${mesaj.mesajText}</div>
+                                            <div class="message-time">${mesaj.mesajGonderilmeTarihi}</div>
                                         </div>
                                     </div>
                                 `;
@@ -1111,6 +1194,8 @@ if (!$kullanici) {
                             html += '</div>';
                             mesajIcerik.innerHTML = html;
                             mesajIcerik.scrollTop = mesajIcerik.scrollHeight;
+                        } else {
+                            mesajIcerik.innerHTML = '<div class="text-center text-danger">Mesajlar yüklenirken bir hata oluştu</div>';
                         }
                     })
                     .catch(error => {
@@ -1119,48 +1204,62 @@ if (!$kullanici) {
                     });
             }
 
-            // Mesajları otomatik yenileme
-            let aktifKonusmaID = null;
-            let sonMesajID = 0;
-
-            function mesajlariGoster(konusmaID) {
-                aktifKonusmaID = konusmaID;
-                yeniMesajlariGoster();
-            }
-
-            function yeniMesajlariGoster() {
+            function yeniMesajlariYukle() {
                 if (!aktifKonusmaID) return;
 
-                fetch('mesajlariGetir.php?konusmaID=' + aktifKonusmaID)
+                fetch(`mesajlariGetir.php?konusmaID=${aktifKonusmaID}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            const mesajIcerik = document.getElementById('mesajIcerik');
-                            let html = '<div class="message-container p-3">';
+                            const mesajIcerik = document.getElementById('mesajIcerik').querySelector('.message-container');
+                            let html = '';
                             data.mesajlar.forEach(mesaj => {
                                 const benimMesajim = mesaj.mesajIletenID == <?php echo $kullaniciID; ?>;
-                                if (mesaj.mesajID > sonMesajID) {
-                                    html += `
-                            <div class="message ${benimMesajim ? 'text-end' : 'text-start'} mb-3">
-                                <div class="message-bubble d-inline-block p-2 rounded ${benimMesajim ? 'bg-primary text-white' : 'bg-light'}">
-                                    <div class="message-sender small">${mesaj.gonderenAd}</div>
-                                    <div class="message-text">${mesaj.mesajText}</div>
-                                    <div class="message-time small">${mesaj.mesajGonderilmeTarihi}</div>
-                                </div>
+                                html += `
+                        <div class="message ${benimMesajim ? 'outgoing' : 'incoming'}">
+                            <div class="message-bubble">
+                                <div class="message-text">${mesaj.mesajText}</div>
+                                <div class="message-time">${mesaj.mesajGonderilmeTarihi}</div>
                             </div>
-                        `;
-                                    sonMesajID = mesaj.mesajID;
-                                }
+                        </div>
+                    `;
+                                sonMesajID = Math.max(sonMesajID, mesaj.mesajID);
                             });
-                            html += '</div>';
                             mesajIcerik.innerHTML = html;
                             mesajIcerik.scrollTop = mesajIcerik.scrollHeight;
                         }
                     });
             }
 
-            // Her 2.5 saniyede bir yeni mesajları kontrol et
-            setInterval(yeniMesajlariGoster, 2500);
+            // Yeni mesaj gönderme
+            document.getElementById('yeniMesajForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const mesajText = document.getElementById('yeniMesajText').value.trim();
+                if (!mesajText || !aktifKonusmaID) return;
+
+                const formData = new FormData();
+                formData.append('konusmaID', aktifKonusmaID);
+                formData.append('mesajText', mesajText);
+
+                fetch('mesajGonder.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('yeniMesajText').value = '';
+                        yeniMesajlariYukle();
+                    }
+                });
+            });
+
+            // Otomatik mesaj güncelleme - her 3 saniyede bir
+            setInterval(() => {
+                if (aktifKonusmaID) {
+                    yeniMesajlariYukle();
+                }
+            }, 3000);
         </script>
         <script type="text/javascript">
             document.addEventListener("DOMContentLoaded", function() {
@@ -1211,3 +1310,6 @@ if (!$kullanici) {
 </body>
 
 </html>
+
+<?php
+// The mesajGonder.php logic is already included at the end of this file, so no duplicate needed here.
