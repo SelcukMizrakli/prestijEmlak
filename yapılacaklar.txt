@@ -49,5 +49,3 @@ Veri Tabanı Tabloları ve Sütunları:
 
 
 *** mesajlar kısmı çalışacak (t_konusmalar ve t_mesajlar tabloları kullanılarak ilan detay ve profil sayfalarından mesaj gönderilebilecek)
-
-** ilan düzenleme sayfası çalışacak (güncelleme butonu çalışmıyor ve sayfadaki form genişliği düşürülecek)

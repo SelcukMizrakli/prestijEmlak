@@ -8,6 +8,8 @@ if (!isset($_SESSION['giris']) || !$_SESSION['giris']) {
     exit;
 }
 
+
+
 // Kullanıcı bilgilerini session'dan al
 $kullaniciID = $_SESSION['uyeID'];
 $kullaniciAdi = $_SESSION['uyeAd'];
@@ -163,36 +165,41 @@ if (!$kullanici) {
         </div>
 
         <script>
-            // Profili Düzenle Formunu Gönder
-            document.getElementById('profilDuzenleForm').addEventListener('submit', function(e) {
-                e.preventDefault();
+            document.addEventListener('DOMContentLoaded', function() {
+                // Profili Düzenle Formunu Gönder
+                const profilDuzenleForm = document.getElementById('profilDuzenleForm');
+                if (profilDuzenleForm) {
+                    profilDuzenleForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
 
-                const formData = new FormData(this);
+                        const formData = new FormData(this);
 
-                fetch('profil.php', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('Profil başarıyla güncellendi!');
+                        fetch('profil.php', {
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert('Profil başarıyla güncellendi!');
 
-                            // Güncellenen bilgileri sayfa üzerindeki alanlara yansıt
-                            document.querySelector('.profile-header h2').textContent = formData.get('uyeAd');
-                            document.querySelector('.profile-header p').textContent = `E-posta: ${formData.get('uyeMail')}`;
+                                    // Güncellenen bilgileri sayfa üzerindeki alanlara yansıt
+                                    document.querySelector('.profile-header h2').textContent = formData.get('uyeAd');
+                                    document.querySelector('.profile-header p').textContent = `E-posta: ${formData.get('uyeMail')}`;
 
-                            // Modalı kapat
-                            const modal = bootstrap.Modal.getInstance(document.getElementById('profilDuzenleModal'));
-                            modal.hide();
-                        } else {
-                            alert('Bir hata oluştu: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        alert('Güncelleme başarılı!');
-                        location.reload();
+                                    // Modalı kapat
+                                    const modal = bootstrap.Modal.getInstance(document.getElementById('profilDuzenleModal'));
+                                    modal.hide();
+                                } else {
+                                    alert('Bir hata oluştu: ' + data.message);
+                                }
+                            })
+                            .catch(error => {
+                                alert('Güncelleme başarılı!');
+                                location.reload();
+                            });
                     });
+                }
             });
         </script>
 
@@ -399,10 +406,11 @@ if (!$kullanici) {
             <!-- Mesajlar -->
             <div class="tab-pane fade" id="mesajlar" role="tabpanel">
                 <div class="row">
+                    <!-- Konuşma Listesi -->
                     <div class="col-md-4">
-                        <!-- Konuşma listesi -->
                         <div class="list-group">
                             <?php
+                            // Kullanıcının tüm konuşmalarını getir
                             $konusmalarSorgu = $baglan->prepare("
                                 SELECT DISTINCT 
                                     k.konusmaID,
@@ -431,7 +439,7 @@ if (!$kullanici) {
                                 $aktifClass = $konusma['okunmamisSayisi'] > 0 ? 'active' : '';
                                 echo '
                                 <a href="javascript:void(0)" class="list-group-item list-group-item-action ' . $aktifClass . '" 
-                                   onclick="mesajlariGoster(event, ' . $konusma['konusmaID'] . ', this)">
+                                   onclick="mesajlariGoster(' . $konusma['konusmaID'] . ', this)">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
                                             <h6 class="mb-1">' . htmlspecialchars($konusma['uyeAd'] . ' ' . $konusma['uyeSoyad']) . '</h6>
@@ -445,94 +453,25 @@ if (!$kullanici) {
                             ?>
                         </div>
                     </div>
+
+                    <!-- Mesaj İçeriği -->
                     <div class="col-md-8">
-                        <!-- Mesaj içeriği -->
-<div id="mesajIcerik" class="card">
-    <div class="card-body message-container">
-        <div id="mesajlarYukleniyor" class="text-center">
-            Bir konuşma seçin...
-        </div>
-    </div>
-    <div class="card-footer">
-        <form id="yeniMesajForm" class="d-none">
-            <div class="input-group">
-                <input type="text" id="yeniMesajText" class="form-control" placeholder="Mesajınızı yazın..." required>
-                <button type="submit" class="btn btn-primary">Gönder</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script>
-    let aktifKonusmaID = null;
-
-    function mesajlariGoster(event, konusmaID, element) {
-        if(event) event.preventDefault();
-
-        // Aktif olan öğeden active class kaldır
-        document.querySelectorAll('.list-group-item').forEach(item => item.classList.remove('active'));
-        // Tıklanan öğeye active class ekle
-        if(element) element.classList.add('active');
-
-        aktifKonusmaID = konusmaID;
-        const yeniMesajForm = document.getElementById('yeniMesajForm');
-        yeniMesajForm.classList.remove('d-none');
-
-        const mesajIcerik = document.getElementById('mesajIcerik');
-        mesajIcerik.querySelector('.card-body').innerHTML = '<div class="text-center">Mesajlar yükleniyor...</div>';
-
-        fetch('mesajlariGetir.php?konusmaID=' + konusmaID)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    let html = '<div class="message-container p-3">';
-                    data.mesajlar.forEach(mesaj => {
-                        const benimMesajim = mesaj.mesajIletenID == <?php echo $kullaniciID; ?>;
-                        html += `
-                            <div class="message ${benimMesajim ? 'outgoing' : 'incoming'}">
-                                <div class="message-bubble">
-                                    <div class="message-text">${mesaj.mesajText}</div>
-                                    <div class="message-time">${mesaj.mesajGonderilmeTarihi}</div>
+                        <div id="mesajIcerik" class="card">
+                            <div class="card-body message-container">
+                                <div id="mesajlarYukleniyor" class="text-center">
+                                    Bir konuşma seçin...
                                 </div>
                             </div>
-                        `;
-                    });
-                    html += '</div>';
-                    mesajIcerik.querySelector('.card-body').innerHTML = html;
-                    mesajIcerik.querySelector('.card-body').scrollTop = mesajIcerik.querySelector('.card-body').scrollHeight;
-                } else {
-                    mesajIcerik.querySelector('.card-body').innerHTML = '<div class="text-center text-danger">Mesajlar yüklenirken bir hata oluştu</div>';
-                }
-            })
-            .catch(error => {
-                console.error('Hata:', error);
-                mesajIcerik.querySelector('.card-body').innerHTML = '<div class="text-center text-danger">Mesajlar yüklenirken bir hata oluştu</div>';
-            });
-    }
-
-    // Yeni mesaj gönderme
-    document.getElementById('yeniMesajForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const mesajText = document.getElementById('yeniMesajText').value.trim();
-        if (!mesajText || !aktifKonusmaID) return;
-
-        const formData = new FormData();
-        formData.append('konusmaID', aktifKonusmaID);
-        formData.append('mesajText', mesajText);
-
-        fetch('mesajGonder.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('yeniMesajText').value = '';
-                mesajlariGoster(null, aktifKonusmaID);
-            }
-        });
-    });
-</script>
+                            <div class="card-footer">
+                                <form id="yeniMesajForm" class="d-none">
+                                    <input type="hidden" name="konusmaID" id="konusmaID">
+                                    <div class="input-group">
+                                        <input type="text" id="yeniMesajText" name="mesajText" class="form-control" placeholder="Mesajınızı yazın..." required>
+                                        <button type="submit" class="btn btn-primary" id="mesajGonderBtn">Gönder</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -976,15 +915,6 @@ if (!$kullanici) {
         </div>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
-            function openYetkiModal(uyeId, mevcutYetki) {
-                document.getElementById('uyeId').value = uyeId;
-                document.getElementById('uyeYetki').value = mevcutYetki;
-
-                const modal = new bootstrap.Modal(document.getElementById('yetkiModal'));
-                modal.show();
-            }
-        </script>
-        <script>
             function toggleMessageBox(sohbetId) {
                 // Tüm mesaj kutularını gizle
                 document.querySelectorAll('.message-box').forEach(box => box.classList.add('d-none'));
@@ -1032,31 +962,6 @@ if (!$kullanici) {
             }
 
             // Form gönderme işlemi
-            document.getElementById('editIlanForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-
-                // Form verilerini al
-                const formData = new FormData(this);
-
-                // AJAX ile düzenleme işlemini gönder
-                fetch('ilanDuzenle.php', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('İlan başarıyla güncellendi!');
-                            location.reload(); // Sayfayı yenile
-                        } else {
-                            alert('Bir hata oluştu: ' + data.message);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Hata:', error);
-                        alert('Bir hata oluştu.');
-                    });
-            });
 
             // Üye ilanlarını yükleme
             function loadUyeIlanlari(uyeId, uyeAdi, uyeEmail, mevcutYetki) {
@@ -1126,18 +1031,6 @@ if (!$kullanici) {
                 const uyeYetki = document.getElementById('uyeYetki').value;
 
                 // AJAX ile yetki düzenleme işlemi yapılabilir
-                alert(`Üye ${uyeId} yetkisi ${uyeYetki} olarak güncellendi.`);
-            });
-
-
-            // Üye yetkisini düzenleme formunu gönderme
-            document.getElementById('uyeYetkiForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-
-                const uyeId = document.getElementById('uyeId').value;
-                const uyeYetki = document.getElementById('uyeYetki').value;
-
-                // AJAX ile yetki düzenleme işlemi yapılabilir
                 fetch('uyeYetkiDuzenle.php', {
                         method: 'POST',
                         headers: {
@@ -1160,106 +1053,141 @@ if (!$kullanici) {
                     });
             });
 
-            // Mesajları gösterme fonksiyonu
-            function mesajlariGoster(event, konusmaID, element) {
-                if(event) event.preventDefault();
-
-                // Aktif olan öğeden active class kaldır
-                document.querySelectorAll('.list-group-item').forEach(item => item.classList.remove('active'));
-                // Tıklanan öğeye active class ekle
-                if(element) element.classList.add('active');
-
-                aktifKonusmaID = konusmaID;
-                document.getElementById('yeniMesajForm').classList.remove('d-none');
-
-                const mesajIcerik = document.getElementById('mesajIcerik');
-                mesajIcerik.innerHTML = '<div class="text-center">Mesajlar yükleniyor...</div>';
-
-                fetch('mesajlariGetir.php?konusmaID=' + konusmaID)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            let html = '<div class="message-container p-3">';
-                            data.mesajlar.forEach(mesaj => {
-                                const benimMesajim = mesaj.mesajIletenID == <?php echo $kullaniciID; ?>;
-                                html += `
-                                    <div class="message ${benimMesajim ? 'outgoing' : 'incoming'}">
-                                        <div class="message-bubble">
-                                            <div class="message-text">${mesaj.mesajText}</div>
-                                            <div class="message-time">${mesaj.mesajGonderilmeTarihi}</div>
-                                        </div>
-                                    </div>
-                                `;
-                            });
-                            html += '</div>';
-                            mesajIcerik.innerHTML = html;
-                            mesajIcerik.scrollTop = mesajIcerik.scrollHeight;
-                        } else {
-                            mesajIcerik.innerHTML = '<div class="text-center text-danger">Mesajlar yüklenirken bir hata oluştu</div>';
+                // Mesajları gösterme fonksiyonu
+                function mesajlariGoster(konusmaID, element) {
+                    // Check if konusmaID is valid
+                    if (!konusmaID) {
+                        alert('Konuşma ID bulunamadı, mesajlar yüklenemiyor.');
+                        const mesajIcerik = document.getElementById('mesajIcerik');
+                        if (mesajIcerik) {
+                            mesajIcerik.querySelector('.card-body').innerHTML = '<div class="text-center text-danger">Konuşma ID bulunamadı, mesajlar yüklenemiyor.</div>';
                         }
-                    })
-                    .catch(error => {
-                        console.error('Hata:', error);
-                        mesajIcerik.innerHTML = '<div class="text-center text-danger">Mesajlar yüklenirken bir hata oluştu</div>';
-                    });
-            }
-
-            function yeniMesajlariYukle() {
-                if (!aktifKonusmaID) return;
-
-                fetch(`mesajlariGetir.php?konusmaID=${aktifKonusmaID}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const mesajIcerik = document.getElementById('mesajIcerik').querySelector('.message-container');
-                            let html = '';
-                            data.mesajlar.forEach(mesaj => {
-                                const benimMesajim = mesaj.mesajIletenID == <?php echo $kullaniciID; ?>;
-                                html += `
-                        <div class="message ${benimMesajim ? 'outgoing' : 'incoming'}">
-                            <div class="message-bubble">
-                                <div class="message-text">${mesaj.mesajText}</div>
-                                <div class="message-time">${mesaj.mesajGonderilmeTarihi}</div>
-                            </div>
-                        </div>
-                    `;
-                                sonMesajID = Math.max(sonMesajID, mesaj.mesajID);
-                            });
-                            mesajIcerik.innerHTML = html;
-                            mesajIcerik.scrollTop = mesajIcerik.scrollHeight;
-                        }
-                    });
-            }
-
-            // Yeni mesaj gönderme
-            document.getElementById('yeniMesajForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const mesajText = document.getElementById('yeniMesajText').value.trim();
-                if (!mesajText || !aktifKonusmaID) return;
-
-                const formData = new FormData();
-                formData.append('konusmaID', aktifKonusmaID);
-                formData.append('mesajText', mesajText);
-
-                fetch('mesajGonder.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('yeniMesajText').value = '';
-                        yeniMesajlariYukle();
+                        return;
                     }
-                });
-            });
 
-            // Otomatik mesaj güncelleme - her 3 saniyede bir
-            setInterval(() => {
-                if (aktifKonusmaID) {
-                    yeniMesajlariYukle();
+                    // Aktif olan öğeden active class kaldır
+                    document.querySelectorAll('.list-group-item').forEach(item => item.classList.remove('active'));
+                    // Tıklanan öğeye active class ekle
+                    if (element) element.classList.add('active');
+
+                    aktifKonusmaID = konusmaID;
+                    const yeniMesajForm = document.getElementById('yeniMesajForm');
+                    if (yeniMesajForm) {
+                        yeniMesajForm.classList.remove('d-none');
+                    }
+
+                    const mesajIcerik = document.getElementById('mesajIcerik');
+                    if (mesajIcerik) {
+                        mesajIcerik.querySelector('.card-body').innerHTML = '<div class="text-center">Mesajlar yükleniyor...</div>';
+                    }
+
+                    fetch('mesajlariGetir.php?konusmaID=' + konusmaID)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                let html = '<div class="message-container p-3">';
+                                data.mesajlar.forEach(mesaj => {
+                                    const benimMesajim = mesaj.mesajIletenID == <?php echo $kullaniciID; ?>;
+                                    html += `
+                                        <div class="message ${benimMesajim ? 'outgoing' : 'incoming'}">
+                                            <div class="message-bubble">
+                                                <div class="message-text">${mesaj.mesajText}</div>
+                                                <div class="message-time">${mesaj.mesajGonderilmeTarihi}</div>
+                                            </div>
+                                        </div>
+                                    `;
+                                });
+                                html += '</div>';
+                                if (mesajIcerik) {
+                                    mesajIcerik.querySelector('.card-body').innerHTML = html;
+                                    mesajIcerik.querySelector('.card-body').scrollTop = mesajIcerik.querySelector('.card-body').scrollHeight;
+                                }
+                            } else {
+                                if (mesajIcerik) {
+                                    mesajIcerik.querySelector('.card-body').innerHTML = '<div class="text-center text-danger">Mesajlar yüklenirken bir hata oluştu</div>';
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Hata:', error);
+                            if (mesajIcerik) {
+                                mesajIcerik.querySelector('.card-body').innerHTML = '<div class="text-center text-danger">Mesajlar yüklenirken bir hata oluştu</div>';
+                            }
+                        });
                 }
-            }, 3000);
+
+                // Form elementi için kontrol ekleyin
+                document.addEventListener('DOMContentLoaded', function() {
+                    let aktifKonusmaID = null;
+                    const yeniMesajForm = document.getElementById('yeniMesajForm');
+
+                    // Yeni fonksiyon: konusmaID'yi dinamik olarak al
+                    function konusmaIDGetir(ilanID, callback) {
+                        const gonderenID = <?php echo $kullaniciID; ?>;
+                        const formData = new FormData();
+                        formData.append('ilanID', ilanID);
+                        formData.append('aliciID', gonderenID);
+
+                        fetch('konusmaGetir.php', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                callback(data.konusmaID);
+                            } else {
+                                alert('Konuşma ID alınamadı: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Hata:', error);
+                            alert('Konuşma ID alınırken bir hata oluştu.');
+                        });
+                    }
+
+                    // Form elementi varsa event listener ekle
+                    if (yeniMesajForm) {
+                        yeniMesajForm.addEventListener('submit', function(e) {
+                            e.preventDefault();
+
+                            const mesajText = document.getElementById('yeniMesajText').value.trim();
+                            if (!mesajText || !aktifKonusmaID) return;
+
+                            // FormData oluştur
+                            const formData = new FormData();
+                            formData.append('konusmaID', aktifKonusmaID);
+                            formData.append('mesajText', mesajText);
+
+                            // AJAX isteği gönder
+                            fetch('mesajGonder.php', {
+                                    method: 'POST',
+                                    body: formData
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        // Mesaj başarıyla gönderildi
+                                        document.getElementById('yeniMesajText').value = ''; // Input'u temizle
+                                        mesajlariGoster(aktifKonusmaID); // Mesajları yeniden yükle
+                                    } else {
+                                        alert('Mesaj gönderilemedi: ' + data.message);
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Hata:', error);
+                                    alert('Mesaj gönderilirken bir hata oluştu.');
+                                });
+                        });
+                    }
+
+                // Mesajları otomatik güncelle
+                if (aktifKonusmaID) {
+                    setInterval(() => {
+                        mesajlariGoster(aktifKonusmaID);
+                    }, 3000);
+                }
+            });
         </script>
         <script type="text/javascript">
             document.addEventListener("DOMContentLoaded", function() {
@@ -1310,6 +1238,3 @@ if (!$kullanici) {
 </body>
 
 </html>
-
-<?php
-// The mesajGonder.php logic is already included at the end of this file, so no duplicate needed here.

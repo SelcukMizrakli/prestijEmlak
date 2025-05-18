@@ -359,10 +359,29 @@ if (!in_array($ilanID, $_SESSION['goruntulenen_ilanlar'])) {
                 alert('Geçersiz ilan veya alıcı bilgisi!');
                 return;
             }
-            document.getElementById('ilanID').value = ilanID;
-            document.getElementById('aliciID').value = aliciID;
-            const modal = new bootstrap.Modal(document.getElementById('mesajModal'));
-            modal.show();
+            // AJAX ile konusmaID al
+            const formData = new FormData();
+            formData.append('ilanID', ilanID);
+            formData.append('aliciID', aliciID);
+
+            fetch('konusmaGetir.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('konusmaID').value = data.konusmaID;
+                    const modal = new bootstrap.Modal(document.getElementById('mesajModal'));
+                    modal.show();
+                } else {
+                    alert('Konuşma alınırken hata oluştu: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Hata:', error);
+                alert('Konuşma alınırken bir hata oluştu.');
+            });
         }
 
         // Form event listener'ı koşullu olarak ekle
@@ -415,8 +434,7 @@ if (!in_array($ilanID, $_SESSION['goruntulenen_ilanlar'])) {
                 </div>
                 <div class="modal-body">
                     <form id="mesajForm">
-                        <input type="hidden" id="ilanID" name="ilanID">
-                        <input type="hidden" id="aliciID" name="aliciID">
+                        <input type="hidden" id="konusmaID" name="konusmaID">
                         <div class="mb-3">
                             <label for="mesajText" class="form-label">Mesajınız</label>
                             <textarea class="form-control" id="mesajText" name="mesajText" rows="4" required></textarea>

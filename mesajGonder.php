@@ -2,88 +2,90 @@
 session_start();
 include("ayar.php");
 
-// Hata raporlamayı aktif et
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-// JSON header'ı ekle
 header('Content-Type: application/json');
 
 try {
     // Oturum kontrolü
     if (!isset($_SESSION['giris']) || $_SESSION['giris'] !== true) {
-        throw new Exception('Oturum açmanız gerekiyor');
+        throw new Exception("Giriş yapmanız gerekiyor");
     }
 
     // POST verilerini kontrol et
-    if (empty($_POST['ilanID']) || empty($_POST['aliciID']) || empty($_POST['mesajText'])) {
-        throw new Exception('Eksik bilgi gönderildi');
+    if (!isset($_POST['konusmaID']) || !isset($_POST['mesajText'])) {
+        throw new Exception("Gerekli veriler eksik");
     }
 
-    // Verileri al ve temizle
-    $ilanID = intval($_POST['ilanID']);
-    $aliciID = intval($_POST['aliciID']);
-    $gonderenID = intval($_SESSION['uyeID']);
+    $konusmaID = intval($_POST['konusmaID']);
     $mesajText = trim($_POST['mesajText']);
+    $gonderenID = $_SESSION['uyeID'];
 
-    // Verilerin geçerliliğini kontrol et
-    if ($ilanID <= 0 || $aliciID <= 0 || $gonderenID <= 0) {
-        throw new Exception('Geçersiz kullanıcı veya ilan bilgisi');
-    }
-
-    // Transaction başlat
-    $baglan->begin_transaction();
-
-    // Konuşma var mı kontrol et
+    // Konuşmanın diğer katılımcısını bul
+    // Since t_konusmalar does not have participant columns, find the other participant from messages
     $konusmaSorgu = $baglan->prepare("
-        SELECT konusmaID 
-        FROM t_konusmalar 
-        WHERE konusmaIlanID = ?
+        SELECT 
+            CASE 
+                WHEN m.mesajIletenID = ? THEN m.mesajAlanID
+                ELSE m.mesajIletenID
+            END as aliciID
+        FROM t_mesajlar m
+        WHERE m.mesajKonusmaID = ?
+        LIMIT 1
     ");
-    $konusmaSorgu->bind_param("i", $ilanID);
+    
+    $konusmaSorgu->bind_param("ii", $gonderenID, $konusmaID);
     $konusmaSorgu->execute();
     $result = $konusmaSorgu->get_result();
+    $konusma = $result->fetch_assoc();
 
-    if ($result->num_rows === 0) {
-        // Yeni konuşma oluştur
-        $konusmaSorgu = $baglan->prepare("
-            INSERT INTO t_konusmalar (konusmaIlanID, konusmaBaslangicTarihi, konusmaGuncellenmeTarihi) 
-            VALUES (?, NOW(), NOW())
+    if (!$konusma) {
+        // If no messages yet, we cannot find other participant from messages
+        // So we can assume the other participant is the ilan owner from t_konusmalar's konusmaIlanID
+        $ilanSorgu = $baglan->prepare("
+            SELECT il.ilanUyeID
+            FROM t_konusmalar k
+            JOIN t_ilanlar il ON k.konusmaIlanID = il.ilanID
+            WHERE k.konusmaID = ?
         ");
-        $konusmaSorgu->bind_param("i", $ilanID);
-        $konusmaSorgu->execute();
-        $konusmaID = $baglan->insert_id;
-    } else {
-        $konusma = $result->fetch_assoc();
-        $konusmaID = $konusma['konusmaID'];
+        $ilanSorgu->bind_param("i", $konusmaID);
+        $ilanSorgu->execute();
+        $ilanResult = $ilanSorgu->get_result();
+        $ilan = $ilanResult->fetch_assoc();
+
+        if (!$ilan) {
+            throw new Exception("Konuşma veya ilan sahibi bulunamadı");
+        }
+
+        $ilanSahibiID = $ilan['ilanUyeID'];
+
+        if ($gonderenID == $ilanSahibiID) {
+            throw new Exception("Konuşma katılımcısı bulunamadı");
+        }
+
+        $konusma = ['aliciID' => $ilanSahibiID];
     }
 
-    // Mesajı kaydet
-    $mesajSorgu = $baglan->prepare("
-        INSERT INTO t_mesajlar 
-        (mesajIletenID, mesajAlanID, mesajText, mesajKonusmaID, mesajOkunduDurumu, mesajGonderilmeTarihi) 
-        VALUES (?, ?, ?, ?, 0, NOW())
+    // Mesajı veritabanına ekle
+    $mesajEkle = $baglan->prepare("
+        INSERT INTO t_mesajlar (
+            mesajKonusmaID, 
+            mesajIletenID, 
+            mesajAlanID, 
+            mesajText, 
+            mesajGonderilmeTarihi,
+            mesajOkunduDurumu
+        ) VALUES (?, ?, ?, ?, NOW(), 0)
     ");
-    $mesajSorgu->bind_param("iisi", $gonderenID, $aliciID, $mesajText, $konusmaID);
-    
-    if (!$mesajSorgu->execute()) {
-        throw new Exception('Mesaj kaydedilemedi: ' . $baglan->error);
+
+    $mesajEkle->bind_param("iiis", 
+        $konusmaID, 
+        $gonderenID, 
+        $konusma['aliciID'], 
+        $mesajText
+    );
+
+    if (!$mesajEkle->execute()) {
+        throw new Exception("Mesaj gönderilemedi");
     }
-
-    // İstatistikleri güncelle
-    $istatistikSorgu = $baglan->prepare("
-        INSERT INTO t_istatistik 
-        (istatistikIlanID, istatistikMesajSayisi, istatistikSonGuncellenmeTarihi)
-        VALUES (?, 1, NOW())
-        ON DUPLICATE KEY UPDATE 
-        istatistikMesajSayisi = istatistikMesajSayisi + 1,
-        istatistikSonGuncellenmeTarihi = NOW()
-    ");
-    $istatistikSorgu->bind_param("i", $ilanID);
-    $istatistikSorgu->execute();
-
-    // Transaction'ı tamamla
-    $baglan->commit();
 
     echo json_encode([
         'success' => true,
@@ -91,11 +93,6 @@ try {
     ]);
 
 } catch (Exception $e) {
-    // Hata durumunda rollback yap
-    if (isset($baglan) && $baglan->connect_errno === 0) {
-        $baglan->rollback();
-    }
-
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()

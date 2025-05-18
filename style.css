@@ -410,11 +410,13 @@ footer a:hover {
   min-width: 200px;
   padding: 10px 0;
   z-index: 1000;
-  display: none; /* Varsayılan olarak gizli */
+  display: none;
+  /* Varsayılan olarak gizli */
 }
 
 .dropdown:hover .dropdown-menu {
-  display: block; /* Hover sırasında görünür */
+  display: block;
+  /* Hover sırasında görünür */
 }
 
 .dropdown-menu .dropdown-item {
@@ -489,91 +491,106 @@ footer a:hover {
 }
 
 .badge {
-    font-size: 0.8em;
+  font-size: 0.8em;
 }
 
 .badge.bg-primary {
-    background-color: #ff6600 !important;
+  background-color: #ff6600 !important;
 }
 
 #mesajIcerik {
-    height: 500px;
-    overflow-y: auto;
+  height: 500px;
+  overflow-y: auto;
 }
 
 #mesajlarYukleniyor {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    color: #666;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #666;
 }
 
 /* Mesaj Gönderme Form Stilleri */
 .message-form {
-    padding: 15px;
-    border-top: 1px solid #dee2e6;
+  padding: 15px;
+  border-top: 1px solid #dee2e6;
 }
 
 .message-input {
-    border-radius: 20px;
-    padding: 10px 15px;
-    border: 1px solid #dee2e6;
-    width: 100%;
-    margin-bottom: 10px;
+  border-radius: 20px;
+  padding: 10px 15px;
+  border: 1px solid #dee2e6;
+  width: 100%;
+  margin-bottom: 10px;
 }
 
 .message-submit {
-    background-color: #004080;
-    color: white;
-    border: none;
-    border-radius: 20px;
-    padding: 8px 20px;
-    float: right;
+  background-color: #004080;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 20px;
+  float: right;
 }
 
 .message-submit:hover {
-    background-color: #003366;
+  background-color: #003366;
 }
 
 /* İlan İstatistik Stilleri */
 .stats-container {
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    padding: 10px;
-    margin-top: 15px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 10px;
+  margin-top: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .stats-container h6 {
-    color: #004080;
-    text-align: center;
-    margin-bottom: 10px;
-    font-weight: 600;
+  color: #004080;
+  text-align: center;
+  margin-bottom: 10px;
+  font-weight: 600;
 }
 
 .stats-container i {
-    font-size: 1.2rem;
-    color: #004080;
-    margin-bottom: 5px;
+  font-size: 1.2rem;
+  color: #004080;
+  margin-bottom: 5px;
 }
 
 .stats-container p {
-    margin: 5px 0;
-    font-weight: bold;
-    color: #004080;
+  margin: 5px 0;
+  font-weight: bold;
+  color: #004080;
 }
 
 .stats-container small {
-    color: #6c757d;
-    font-size: 0.8rem;
+  color: #6c757d;
+  font-size: 0.8rem;
 }
 
-.stats-container .row > div {
-    padding: 5px;
-    border-right: 1px solid #dee2e6;
+.stats-container .row>div {
+  padding: 5px;
+  border-right: 1px solid #dee2e6;
 }
 
-.stats-container .row > div:last-child {
-    border-right: none;
+.stats-container .row>div:last-child {
+  border-right: none;
+}
+
+.resim-preview-container {
+  position: relative;
+  display: inline-block;
+}
+
+.resim-kaldir-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  padding: 0 6px;
+  font-size: 18px;
+  line-height: 1;
+  border-radius: 50%;
 }
