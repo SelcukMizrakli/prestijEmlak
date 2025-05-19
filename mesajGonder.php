@@ -10,26 +10,35 @@ try {
         throw new Exception("Giriş yapmanız gerekiyor");
     }
 
-    // POST verilerini kontrol et
-    if (!isset($_POST['konusmaID']) || !isset($_POST['mesajText'])) {
-        throw new Exception("Gerekli veriler eksik");
+    $gonderenID = $_SESSION['uyeID'];
+    
+    // GET/POST verilerini kontrol et
+    $konusmaID = isset($_GET['konusmaID']) ? intval($_GET['konusmaID']) : 0;
+    $mesajText = isset($_GET['mesajText']) ? trim($_GET['mesajText']) : '';
+
+    // Debug için gelen verileri logla
+    error_log("KonusmaID: " . $konusmaID);
+    error_log("MesajText: " . $mesajText);
+    error_log("GonderenID: " . $gonderenID);
+
+    if (empty($mesajText)) {
+        throw new Exception("Mesaj metni boş olamaz");
     }
 
-    $konusmaID = intval($_POST['konusmaID']);
-    $mesajText = trim($_POST['mesajText']);
-    $gonderenID = $_SESSION['uyeID'];
+    if ($konusmaID <= 0) {
+        throw new Exception("Geçersiz konuşma ID");
+    }
 
     // Konuşmanın diğer katılımcısını bul
-    // Since t_konusmalar does not have participant columns, find the other participant from messages
     $konusmaSorgu = $baglan->prepare("
         SELECT 
             CASE 
-                WHEN m.mesajIletenID = ? THEN m.mesajAlanID
-                ELSE m.mesajIletenID
-            END as aliciID
-        FROM t_mesajlar m
-        WHERE m.mesajKonusmaID = ?
-        LIMIT 1
+                WHEN k.konusmaBaslatanID = ? THEN k.konusmaAliciID
+                ELSE k.konusmaBaslatanID
+            END as aliciID,
+            konusmaIlanID
+        FROM t_konusmalar k
+        WHERE k.konusmaID = ?
     ");
     
     $konusmaSorgu->bind_param("ii", $gonderenID, $konusmaID);
@@ -38,61 +47,59 @@ try {
     $konusma = $result->fetch_assoc();
 
     if (!$konusma) {
-        // If no messages yet, we cannot find other participant from messages
-        // So we can assume the other participant is the ilan owner from t_konusmalar's konusmaIlanID
-        $ilanSorgu = $baglan->prepare("
-            SELECT il.ilanUyeID
-            FROM t_konusmalar k
-            JOIN t_ilanlar il ON k.konusmaIlanID = il.ilanID
-            WHERE k.konusmaID = ?
-        ");
-        $ilanSorgu->bind_param("i", $konusmaID);
-        $ilanSorgu->execute();
-        $ilanResult = $ilanSorgu->get_result();
-        $ilan = $ilanResult->fetch_assoc();
-
-        if (!$ilan) {
-            throw new Exception("Konuşma veya ilan sahibi bulunamadı");
-        }
-
-        $ilanSahibiID = $ilan['ilanUyeID'];
-
-        if ($gonderenID == $ilanSahibiID) {
-            throw new Exception("Konuşma katılımcısı bulunamadı");
-        }
-
-        $konusma = ['aliciID' => $ilanSahibiID];
+        throw new Exception("Konuşma bulunamadı");
     }
 
     // Mesajı veritabanına ekle
     $mesajEkle = $baglan->prepare("
         INSERT INTO t_mesajlar (
-            mesajKonusmaID, 
-            mesajIletenID, 
-            mesajAlanID, 
-            mesajText, 
-            mesajGonderilmeTarihi,
-            mesajOkunduDurumu
-        ) VALUES (?, ?, ?, ?, NOW(), 0)
+            mesajKonusmaID,
+            mesajIletenID,
+            mesajAlanID,
+            mesajText,
+            mesajOkunduDurumu,
+            mesajGonderilmeTarihi
+        ) VALUES (?, ?, ?, ?, 0, NOW())
     ");
 
     $mesajEkle->bind_param("iiis", 
-        $konusmaID, 
-        $gonderenID, 
-        $konusma['aliciID'], 
+        $konusmaID,
+        $gonderenID,
+        $konusma['aliciID'],
         $mesajText
     );
 
     if (!$mesajEkle->execute()) {
-        throw new Exception("Mesaj gönderilemedi");
+        throw new Exception("Mesaj gönderilemedi: " . $mesajEkle->error);
+    }
+
+    // Konuşmanın güncellenme tarihini güncelle
+    $guncelle = $baglan->prepare("
+        UPDATE t_konusmalar 
+        SET konusmaGuncellenmeTarihi = NOW() 
+        WHERE konusmaID = ?
+    ");
+    
+    $guncelle->bind_param("i", $konusmaID);
+    if (!$guncelle->execute()) {
+        throw new Exception("Konuşma güncellenemedi: " . $guncelle->error);
     }
 
     echo json_encode([
         'success' => true,
-        'message' => 'Mesaj başarıyla gönderildi'
+        'message' => 'Mesaj başarıyla gönderildi',
+        'mesajID' => $baglan->insert_id,
+        'debug' => [
+            'konusmaID' => $konusmaID,
+            'gonderenID' => $gonderenID,
+            'aliciID' => $konusma['aliciID'],
+            'ilanID' => $konusma['konusmaIlanID'],
+            'mesajText' => $mesajText
+        ]
     ]);
 
 } catch (Exception $e) {
+    error_log("Mesaj gönderme hatası: " . $e->getMessage());
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()

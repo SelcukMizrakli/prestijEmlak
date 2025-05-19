@@ -467,7 +467,7 @@ if (!$kullanici) {
                                     <input type="hidden" name="konusmaID" id="konusmaID">
                                     <div class="input-group">
                                         <input type="text" id="yeniMesajText" name="mesajText" class="form-control" placeholder="Mesajınızı yazın..." required>
-                                        <button type="submit" class="btn btn-primary" id="mesajGonderBtn">Gönder</button>
+                                        <button type="submit" class="btn btn-primary">Gönder</button>
                                     </div>
                                 </form>
                             </div>
@@ -1055,22 +1055,20 @@ if (!$kullanici) {
 
                 // Mesajları gösterme fonksiyonu
                 function mesajlariGoster(konusmaID, element) {
-                    // Check if konusmaID is valid
-                    if (!konusmaID) {
-                        alert('Konuşma ID bulunamadı, mesajlar yüklenemiyor.');
-                        const mesajIcerik = document.getElementById('mesajIcerik');
-                        if (mesajIcerik) {
-                            mesajIcerik.querySelector('.card-body').innerHTML = '<div class="text-center text-danger">Konuşma ID bulunamadı, mesajlar yüklenemiyor.</div>';
-                        }
-                        return;
-                    }
-
+                    // Debug için konusmaID değerini konsola yazdır
+                    console.log('Aktif Konuşma ID:', konusmaID);
+                    
                     // Aktif olan öğeden active class kaldır
                     document.querySelectorAll('.list-group-item').forEach(item => item.classList.remove('active'));
                     // Tıklanan öğeye active class ekle
-                    if (element) element.classList.add('active');
+                    if(element) element.classList.add('active');
 
+                    // Global aktifKonusmaID'yi güncelle
                     aktifKonusmaID = konusmaID;
+                    
+                    // Gizli input'a konusmaID'yi ata
+                    document.getElementById('konusmaID').value = konusmaID;
+                    
                     const yeniMesajForm = document.getElementById('yeniMesajForm');
                     if (yeniMesajForm) {
                         yeniMesajForm.classList.remove('d-none');
