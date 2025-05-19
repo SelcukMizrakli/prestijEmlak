@@ -1,35 +1,3 @@
-*       Kullanıcıya özel profil oluşturulacak (yetkilere göre)
-
-*   ilanları silme ve düzenleme yetkisi kullanıcıya verilecek
-
-**  ilan oluşturmak için kullanıcıya form doldurması gerekecek
-*   formda kullanıcıya ad soyad, telefon numarası, e-posta adresi, ilan türü, ilan başlığı, ilan açıklaması, ilan fiyatı, ilan fotoğrafı,
-        ilan adresi, ilan tarihleri, ilan statüsü, ilan görünürlüğü, ilan kategorisi
-
-** ilanı her ziyaret edişimizde ilan istatistiklerindeki t_istatistik tablosundaki istatistikGoruntulenmeSayisi artmalı
-
-** ilan detay sayfasına mesaj yazma özelliği eklenmeli (ilan veren kendisine mesaj gönderememeli)
-
-
-
-
-// ilan ekleme sayfasında kaldık. Girilen bilgileri veri tabanına kaydedeceğiz. (t_ilanlar, t_ilandetay, t_adresler, t_ilantur, t_mulktipi, t_resimler tabloları kullanılacak)
-        t_ilanlar       : ilanUyeID, ilanAdresID, ilanDurum (0:aktif, 1:pasif, 2:satildi, 3:kiralandi)
-        t_ilandetay     : ilanDilanID, ilanDAciklama, ilanDFiyat, ilanDmetreKareBrut, ilanDmetreKareNet, ilanDOdaSayisi, ilanDBinaYasi, ilanDSiteIcerisindeMi (0: hayir, 1: evet),
-                                ilanDMulkTipiID, ilanDMulkTuru (ev, daire, ofis), ilanDKonumBilgisi, ilanDIsitmaTipi, ilanDBulunduguKatSayisi, ilanDBinaKatSayisi, ilanDIlanTurID
-        t_adresler      : adresBaslik, adresMahalle, adresIlce, adresSehir, adresUlke, adresPostaKodu
-        t_ilantur       : ilanTurAdi
-        t_mulktipi      : mulkTipiBaslik
-        t_resimler      : resimIlanID, resimBaslik, resimUrl, resimDurum
-
-// Profil hariç diğer sayfalar düzenlendi (footer için ayrı bir sayfa oluşturulabilir)
-// ilan ekleme sayfası yapılacak, ilanlar sayfasına veri tabanından ilanlar getirilecek
-// profil sayfası komple ayarlanacak (farklı başlıklara ayrılabilir)
-
-yönetim paneli kısmındaki üye listesi daha düzenli hale getirilecek, yalnızca 3 üye görünecek diğer üyeler filtrelemeyle görüntülenecek
-uye aktiflik durumu 0 olan uyeler giris yapamayacak
-uye kayit sirasinda aktiflik durumunu 1 olarak atayacagiz.
-
 ---------------------------------------------------------------------------------------------------------------------------------------------
 
 Veri Tabanı Tabloları ve Sütunları:
@@ -49,3 +17,4 @@ Veri Tabanı Tabloları ve Sütunları:
 
 
 *** mesajlar kısmı çalışacak (t_konusmalar ve t_mesajlar tabloları kullanılarak ilan detay ve profil sayfalarından mesaj gönderilebilecek)
+// Mesajlar kısmı çalışmıyor!!!
